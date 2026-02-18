@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -58,6 +59,10 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // NOTE: Using NoOpPasswordEncoder so existing plain-text passwords in the
+        // SQL seed data (admin/user tables) work out-of-the-box.
+        // For production, replace this with `new BCryptPasswordEncoder()` and
+        // store BCrypt-hashed passwords in the database instead.
+        return NoOpPasswordEncoder.getInstance();
     }
 }

@@ -1,3 +1,8 @@
+-- SR FAB E-Commerce Database Schema
+-- Project: SR FAB - Premium Garments & Fashion Store
+-- Author: Sriram-93
+-- Description: MySQL dump for E-Commerce Website
+
 CREATE DATABASE  IF NOT EXISTS `eazydeals` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `eazydeals`;
 -- MySQL dump 10.13  Distrib 8.0.34, for Win64 (x86_64)

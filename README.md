@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SR FAB - Premium Garments & Fashion Store
 
 ## Overview
@@ -41,3 +42,6 @@ Client runs at `http://localhost:5173`.
 - **Checkout**: COD & Card payment options.
 - **Admin**: Manage products, categories, and orders.
 - **Security**: Stateless JWT authentication.
+=======
+# SR_FAB
+>>>>>>> 7dafccd (commited)

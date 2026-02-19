@@ -7,15 +7,17 @@ SR FAB is a full-stack fashion e-commerce platform built with **Spring Boot** (B
 ```
 ├── backend/     Spring Boot (Java 17, Maven, MySQL, JWT)
 ├── frontend/    React (Vite, Tailwind CSS, Context API)
-└── eazydeals_maven.sql   Database schema
+└── database_schema.sql   Database schema
 ```
 
 ## How to Run
 
 ### 1. Database
 - Ensure MySQL is running.
-- Restore schema from `eazydeals_maven.sql` if needed.
+- Restore schema from `database_schema.sql` if needed.
 - Update `backend/src/main/resources/application.properties` with DB credentials.
+
+> **Note**: `database_schema.sql` is the main source for the database structure (renamed from `eazydeals_maven.sql` to cleaner version history).
 
 ### 2. Backend
 ```bash

@@ -1,0 +1,17 @@
+# Spring Boot
+**/target/
+**/mvnw
+**/mvnw.cmd
+**/.mvn
+**/application.properties
+
+# Node
+**/node_modules/
+**/dist/
+**/.env
+**/.DS_Store
+
+# IDEs
+**/.idea/
+**/.vscode/
+**/*.iml

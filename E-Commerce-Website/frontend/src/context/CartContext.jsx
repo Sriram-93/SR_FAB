@@ -1,7 +1,16 @@
-import { createContext, useState, useEffect, useContext } from 'react';
-import api from '../api/axios';
-import { useAuth } from './AuthContext';
-import { toast } from 'react-toastify';
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react-hooks/set-state-in-effect */
+import {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useMemo,
+} from "react";
+import api from "../api/axios";
+import { useAuth } from "./AuthContext";
+import { toast } from "react-toastify";
 
 const CartContext = createContext();
 
@@ -11,11 +20,7 @@ export const CartProvider = ({ children }) => {
   const { user } = useAuth();
   const [cartCount, setCartCount] = useState(0);
 
-  useEffect(() => {
-    refreshCart();
-  }, [user]);
-
-  const refreshCart = async () => {
+  const refreshCart = useCallback(async () => {
     if (!user?.userId) {
       setCartCount(0);
       return;
@@ -27,31 +32,41 @@ export const CartProvider = ({ children }) => {
     } catch {
       setCartCount(0);
     }
-  };
+  }, [user]);
 
-  const addToCart = async (productId, variantId, quantity = 1) => {
-    if (!user) {
-      toast.warning('Please sign in to add items to your bag');
-      return;
-    }
-    try {
-      await api.post('/cart/add', {
-        userId: user.userId,
-        productId,
-        variantId,
-        quantity
-      });
-      toast.success('Added to bag');
-      refreshCart();
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to add item');
-    }
-  };
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
+
+  const addToCart = useCallback(
+    async (productId, variantId, quantity = 1) => {
+      if (!user) {
+        toast.warning("Please sign in to add items to your bag");
+        return;
+      }
+      try {
+        await api.post("/cart/add", {
+          userId: user.userId,
+          productId,
+          variantId,
+          quantity,
+        });
+        toast.success("Added to bag");
+        refreshCart();
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to add item");
+      }
+    },
+    [refreshCart, user],
+  );
+
+  const contextValue = useMemo(
+    () => ({ cartCount, addToCart, refreshCart }),
+    [cartCount, addToCart, refreshCart],
+  );
 
   return (
-    <CartContext.Provider value={{ cartCount, addToCart, refreshCart }}>
-      {children}
-    </CartContext.Provider>
+    <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
   );
 };

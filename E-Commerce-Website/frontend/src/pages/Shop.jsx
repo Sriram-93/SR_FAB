@@ -1,87 +1,194 @@
-import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import api from '../api/axios';
-import ProductCard from '../components/ProductCard';
-import { FiChevronLeft } from 'react-icons/fi';
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { FiChevronLeft, FiSearch } from "react-icons/fi";
+import ProductCard from "../components/ProductCard";
+import ProductGridSkeleton from "../components/skeletons/ProductGridSkeleton";
+import QueryErrorState from "../components/QueryErrorState";
+import { groupProductsByStyle } from "../utils/productGrouping";
+import { useCategoriesQuery, useProductsQuery } from "../api/catalogQueries";
+import { usePageSeo } from "../hooks/usePageSeo";
 
 const Shop = () => {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [searchParams] = useSearchParams();
-  const [selectedCat, setSelectedCat] = useState('all');
-  const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [sortBy, setSortBy] = useState("featured");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prodRes, catRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/categories'),
-        ]);
-        setProducts(prodRes.data);
-        setCategories(catRes.data);
-      } catch (err) {
-        console.error('Error fetching shop data', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const selectedCat = searchParams.get("categoryId") || "all";
+  const searchQueryRaw = searchParams.get("search") || "";
+  const searchQuery = searchQueryRaw.toLowerCase();
 
-  const searchQuery = searchParams.get('search')?.toLowerCase() || '';
+  const {
+    data: products = [],
+    isLoading: isProductsLoading,
+    isError: productsError,
+    refetch: refetchProducts,
+  } = useProductsQuery();
 
-  const filtered = products.filter((p) => {
-    const matchesCat = selectedCat === 'all' || p.category?.categoryId === parseInt(selectedCat);
-    const matchesSearch = !searchQuery || 
-                          p.productName?.toLowerCase().includes(searchQuery) || 
-                          p.brand?.toLowerCase().includes(searchQuery) ||
-                          p.productDescription?.toLowerCase().includes(searchQuery);
-    return matchesCat && matchesSearch;
+  const {
+    data: categories = [],
+    isLoading: isCategoriesLoading,
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useCategoriesQuery();
+
+  usePageSeo({
+    title: "Shop Premium Collections | SR FAB",
+    description:
+      "Explore premium cotton collections with fast browsing, smart filtering, and rich product previews.",
+    image:
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=630&fit=crop&q=80",
+    url: `${window.location.origin}/shop`,
   });
 
-  if (loading) {
+  const styleProducts = useMemo(
+    () => groupProductsByStyle(products),
+    [products],
+  );
+
+  const filtered = useMemo(() => {
+    return styleProducts.filter((product) => {
+      const matchesCat =
+        selectedCat === "all" ||
+        product.category?.categoryId === Number.parseInt(selectedCat, 10);
+
+      const matchesSearch =
+        !searchQuery ||
+        product.productName?.toLowerCase().includes(searchQuery) ||
+        product.brand?.toLowerCase().includes(searchQuery) ||
+        product.productDescription?.toLowerCase().includes(searchQuery) ||
+        product.styleColors?.some((color) =>
+          color.toLowerCase().includes(searchQuery),
+        );
+
+      return matchesCat && matchesSearch;
+    });
+  }, [styleProducts, selectedCat, searchQuery]);
+
+  const sortedProducts = useMemo(() => {
+    const cloned = [...filtered];
+
+    if (sortBy === "price-asc") {
+      cloned.sort(
+        (a, b) =>
+          (a.productPriceAfterDiscount || a.productPrice || 0) -
+          (b.productPriceAfterDiscount || b.productPrice || 0),
+      );
+    } else if (sortBy === "price-desc") {
+      cloned.sort(
+        (a, b) =>
+          (b.productPriceAfterDiscount || b.productPrice || 0) -
+          (a.productPriceAfterDiscount || a.productPrice || 0),
+      );
+    } else if (sortBy === "discount") {
+      cloned.sort(
+        (a, b) => (b.productDiscount || 0) - (a.productDiscount || 0),
+      );
+    }
+
+    return cloned;
+  }, [filtered, sortBy]);
+
+  const isLoading = isProductsLoading || isCategoriesLoading;
+  const hasError = productsError || categoriesError;
+
+  if (hasError) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-accent" />
+      <div className="animate-fade-in py-10">
+        <QueryErrorState
+          title="Catalog failed to load"
+          message="We are having trouble loading the catalog. Please retry in a moment."
+          onRetry={() => {
+            refetchProducts();
+            refetchCategories();
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div className="animate-fade-in py-10">
-      {/* Header */}
-      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Link to="/" className="mb-2 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-widest text-accent transition hover:text-primary">
-            <FiChevronLeft size={14} /> Home
-          </Link>
-          <h1 className="font-serif text-3xl font-bold text-primary sm:text-4xl">
-            {searchQuery ? `Search: "${searchQuery}"` : 'All Collections'}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{filtered.length} styles found</p>
+      <div className="mb-10 border-b border-primary/10 pb-6">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+          <div>
+            <Link
+              to="/"
+              className="mb-2 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-widest text-accent transition hover:text-primary"
+            >
+              <FiChevronLeft size={14} /> Home
+            </Link>
+            <h1 className="font-serif text-3xl font-bold text-primary sm:text-4xl">
+              {searchQuery ? `Search: "${searchQuery}"` : "All Collections"}
+            </h1>
+            <p className="mt-1 text-sm font-medium text-muted">
+              {sortedProducts.length} products
+            </p>
+          </div>
+
+          <div className="grid w-full gap-4 md:w-[420px] md:grid-cols-[1fr_auto]">
+            <label className="flex items-center gap-2 border border-primary/15 bg-surface px-3 py-2 text-xs">
+              <FiSearch className="text-primary/50" aria-hidden="true" />
+              <input
+                type="search"
+                value={searchQueryRaw}
+                onChange={(event) => {
+                  const next = new URLSearchParams(searchParams);
+                  const nextValue = event.target.value.trimStart();
+                  if (nextValue) {
+                    next.set("search", nextValue);
+                  } else {
+                    next.delete("search");
+                  }
+                  setSearchParams(next, { replace: true });
+                }}
+                placeholder="Search by product, brand, color"
+                className="w-full bg-transparent text-xs font-semibold tracking-wide text-primary outline-none placeholder:text-primary/35"
+                aria-label="Search products"
+              />
+            </label>
+
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+              className="w-full border border-primary/15 bg-surface px-4 py-3 text-xs font-semibold uppercase tracking-wide text-primary outline-none transition hover:border-primary/30 focus:border-accent"
+              aria-label="Sort products"
+            >
+              <option value="featured">Featured</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="discount">Discount</option>
+            </select>
+          </div>
         </div>
 
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap gap-2.5">
           <button
-            onClick={() => setSelectedCat('all')}
-            className={`px-4 py-2 text-xs font-semibold uppercase tracking-widest transition ${
-              selectedCat === 'all'
-                ? 'bg-primary text-white'
-                : 'border border-gray-200 text-muted hover:border-primary hover:text-primary'
+            type="button"
+            onClick={() => {
+              const next = new URLSearchParams(searchParams);
+              next.delete("categoryId");
+              setSearchParams(next, { replace: true });
+            }}
+            className={`px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition ${
+              selectedCat === "all"
+                ? "bg-primary text-bg"
+                : "border border-primary/15 text-primary/55 hover:border-accent hover:text-accent"
             }`}
           >
-            All
+            All Collections
           </button>
           {categories.map((cat) => (
             <button
+              type="button"
               key={cat.categoryId}
-              onClick={() => setSelectedCat(String(cat.categoryId))}
-              className={`px-4 py-2 text-xs font-semibold uppercase tracking-widest transition ${
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.set("categoryId", String(cat.categoryId));
+                setSearchParams(next, { replace: true });
+              }}
+              className={`px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition ${
                 selectedCat === String(cat.categoryId)
-                  ? 'bg-primary text-white'
-                  : 'border border-gray-200 text-muted hover:border-primary hover:text-primary'
+                  ? "bg-primary text-bg"
+                  : "border border-primary/15 text-primary/55 hover:border-accent hover:text-accent"
               }`}
             >
               {cat.categoryName}
@@ -90,16 +197,21 @@ const Shop = () => {
         </div>
       </div>
 
-      {/* Product Grid */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <ProductGridSkeleton count={8} />
+      ) : sortedProducts.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center text-center">
           <p className="text-lg font-medium text-primary">No products found</p>
-          <p className="mt-2 text-sm text-muted">Try selecting a different category.</p>
+          <p className="mt-2 text-sm text-muted">
+            Try a different keyword or category.
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-          {filtered.map((product, i) => (
-            <ProductCard key={product.productId} product={product} index={i} />
+        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+          {sortedProducts.map((product, index) => (
+            <div key={product.productId} className="h-full">
+              <ProductCard product={product} index={index} />
+            </div>
           ))}
         </div>
       )}

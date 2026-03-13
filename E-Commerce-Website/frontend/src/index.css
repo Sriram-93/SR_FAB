@@ -1,39 +1,117 @@
-/* ─── Google Font ─── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700&display=swap');
+/* ─── Google Fonts ─── */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
 
 @import "tailwindcss";
 
 /* ─── Custom Theme Overrides ─── */
 @theme {
-  --color-primary: #111111;
-  --color-accent: #c9a96e;
-  --color-accent-light: #e8d5b0;
-  --color-surface: #fafafa;
-  --color-muted: #6b7280;
-  --font-sans: 'Inter', sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-bg: var(--bg);
+  --font-sans: "Manrope", sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+}
+
+:root {
+  --primary: #18140d;
+  --accent: #b8892f;
+  --accent-light: #ead9b6;
+  --surface: #fffdf8;
+  --bg: #f7f3ea;
+  --muted: #6a655d;
+  --line: #e5d7bd;
+  --line-strong: #ccb07d;
+  --elevated: #ffffff;
+  --gold-glow: rgba(184, 137, 47, 0.18);
+}
+
+.dark {
+  --primary: #f7f1e5;
+  --accent: #d2a64e;
+  --accent-light: #9a8052;
+  --surface: #14110d;
+  --bg: #0c0a08;
+  --muted: #aba293;
+  --line: #2b2318;
+  --line-strong: #7f6330;
+  --elevated: #1a1611;
+  --gold-glow: rgba(210, 166, 78, 0.18);
 }
 
 /* ─── Base ─── */
 body {
   font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at 15% -10%, var(--gold-glow), transparent 35%),
+    radial-gradient(circle at 85% 110%, var(--gold-glow), transparent 40%),
+    var(--bg);
+  color: var(--primary);
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+#root {
+  min-height: 100vh;
+}
+
+.lux-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface), white 2%),
+    var(--surface)
+  );
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 30px -24px var(--gold-glow);
+}
+
+.dark .lux-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface), black 6%),
+    var(--surface)
+  );
+}
+
 /* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+}
 
 /* ─── Utility Animations ─── */
 @keyframes slideIn {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.animate-slide-in { animation: slideIn 0.3s ease-out; }
-.animate-fade-in  { animation: fadeIn 0.5s ease-out both; }
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out both;
+}

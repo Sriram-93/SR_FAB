@@ -1,10 +1,10 @@
 -- ============================================
 -- SR FAB  – Seed Data for Fashion Store
 -- ============================================
--- Run: mysql -u admin -p eazydeals < seed_data.sql
+-- Run: mysql -u admin -p srfab < seed_data.sql
 -- ============================================
 
-USE `eazydeals`;
+USE `srfab`;
 
 -- ── Categories ─────────────────────────────
 INSERT INTO category (cid, name, image) VALUES

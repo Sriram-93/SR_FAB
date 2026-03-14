@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo, useRef } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, memo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -6,12 +6,12 @@ import {
   Environment,
   ContactShadows,
   Center,
-  Html,
 } from "@react-three/drei";
 import { Color } from "three";
 
-// This is a placeholder spinning box. Once you generate a .glb model,
-// you can replace this with your actual product model!
+// Set decoder path for Draco compressed models
+useGLTF.setDecoderPath("/draco/gltf/");
+
 const PlaceholderBox = () => {
   const meshRef = useRef(null);
   useFrame((state, delta) => {
@@ -27,79 +27,52 @@ const PlaceholderBox = () => {
   );
 };
 
-// Actual Model component using useGLTF.
-const normalizeColor = (activeColor) => {
-  if (!activeColor) return null;
-
-  const key = String(activeColor).trim().toLowerCase();
-  const colorMap = {
-    black: "#1A1A1A",
-    white: "#FFFFFF",
-    navy: "#000080",
-    "navy blue": "#000080",
-    beige: "#F5F5DC",
-    grey: "#808080",
-    gray: "#808080",
-    maroon: "#800000",
-    blue: "#3b82f6",
-    sky: "#0ea5e9",
-    "sky blue": "#0ea5e9",
-    pink: "#ec4899",
-    green: "#10b981",
-    olive: "#4d7c0f",
-    purple: "#8b5cf6",
-    charcoal: "#374151",
-    cream: "#f5f5dc",
-    mustard: "#ca8a04",
-    yellow: "#facc15",
-  };
-
-  return colorMap[key] || activeColor;
-};
-
-const Model = ({ url, activeColor }) => {
+// Stable Model renderer that avoids redundant work
+const ModelMesh = memo(({ url, activeColor }) => {
   const { scene } = useGLTF(url);
-  const finalColor = useMemo(() => normalizeColor(activeColor), [activeColor]);
+  
+  // Memoize the color to avoid overhead
+  const finalColorHex = useMemo(() => {
+    const key = String(activeColor || "").trim().toLowerCase();
+    const colorMap = {
+      black: "#1A1A1A",
+      white: "#FFFFFF",
+      navy: "#000080",
+      "navy blue": "#000080",
+      beige: "#F5F5DC",
+      grey: "#808080",
+      blue: "#3b82f6",
+    };
+    return colorMap[key] || activeColor || "#ffffff";
+  }, [activeColor]);
 
   useEffect(() => {
-    if (!scene || !finalColor) return;
-
-    let parsed;
-    try {
-      parsed = new Color(finalColor);
-    } catch {
-      // Ignore unsupported color formats instead of crashing the modal.
-      return;
-    }
-
+    if (!scene) return;
+    const colorObj = new Color(finalColorHex);
     scene.traverse((child) => {
-      if (!child.isMesh || !child.material || !child.material.color) return;
-      child.material.color.copy(parsed);
-      child.material.needsUpdate = true;
+      if (child.isMesh && child.material) {
+        if (child.material.color) {
+            child.material.color.set(colorObj);
+        }
+        child.material.needsUpdate = true;
+      }
     });
-  }, [scene, finalColor]);
+  }, [scene, finalColorHex]);
 
   return <primitive object={scene} />;
-};
+});
+
+ModelMesh.displayName = "ModelMesh";
 
 class ModelErrorBoundary extends Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false };
   }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch() {
-    // Intentionally swallow model loading/render errors and show placeholder.
-  }
-
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch() {}
   render() {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
+    if (this.state.hasError) return this.props.fallback;
     return this.props.children;
   }
 }
@@ -108,63 +81,67 @@ const ModelViewer = ({ modelUrl, activeColor }) => {
   const hasModel = Boolean(modelUrl);
 
   return (
-    <Canvas
-      camera={{ position: [0, 0, 3.2], fov: 40 }}
-      className="h-full w-full bg-[var(--elevated)]"
-      dpr={[1, 1.5]}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
-    >
-      <ambientLight intensity={2} />
-      <directionalLight position={[10, 10, 10]} intensity={3} castShadow />
-      <directionalLight position={[-10, 0, -10]} intensity={1.5} />
-      {hasModel && <Environment preset="studio" />}
-
-      <Suspense
-        fallback={
-          <Html center>
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
-              <span className="animate-pulse text-[10px] font-bold uppercase tracking-widest text-muted/40">
-                Initializing Studio
-              </span>
-            </div>
-          </Html>
-        }
+    <div className="relative h-full w-full bg-[var(--elevated)] overflow-hidden">
+      <Canvas
+        camera={{ position: [0, 0, 3.2], fov: 40 }}
+        dpr={0.75} // Reduced DPR for stability on high-poly models
+        gl={{ 
+            antialias: false, 
+            powerPreference: "default",
+            alpha: true,
+            stencil: false,
+            depth: true 
+        }}
+        flat={true} 
       >
-        <Center>
-          {hasModel ? (
-            <ModelErrorBoundary fallback={<PlaceholderBox />}>
-              <Model url={modelUrl} activeColor={activeColor} />
-            </ModelErrorBoundary>
-          ) : (
-            <PlaceholderBox />
-          )}
-        </Center>
-      </Suspense>
+        <ambientLight intensity={1.5} />
+        <directionalLight position={[10, 10, 10]} intensity={2.5} castShadow={false} />
+        {hasModel && <Environment preset="studio" blur={1} />}
 
-      <OrbitControls
-        autoRotate={hasModel}
-        autoRotateSpeed={0.5}
-        enableZoom={true}
-        minDistance={0.5}
-        maxDistance={8}
-        enablePan={false}
-        makeDefault
-      />
-      {hasModel && (
-        <ContactShadows
-          resolution={512}
-          scale={15}
-          blur={2.2}
-          opacity={0.28}
-          far={1}
+        <Suspense fallback={null}>
+          <Center>
+            {hasModel ? (
+              <ModelErrorBoundary fallback={<PlaceholderBox />}>
+                <ModelMesh url={modelUrl} activeColor={activeColor} />
+              </ModelErrorBoundary>
+            ) : (
+              <PlaceholderBox />
+            )}
+          </Center>
+        </Suspense>
+
+        <OrbitControls
+          autoRotate={hasModel}
+          autoRotateSpeed={0.5}
+          enableZoom={true}
+          enablePan={false}
+          makeDefault
         />
-      )}
-    </Canvas>
+        
+        {hasModel && (
+          <ContactShadows
+            resolution={128} // Significantly lower shadow map to prevent Context Loss
+            scale={15}
+            blur={2.5}
+            opacity={0.2}
+            far={1}
+          />
+        )}
+      </Canvas>
+
+      {/* Loader UI outside Canvas for lower GPU overhead */}
+      <Suspense fallback={
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--elevated)] bg-opacity-50">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
+          <span className="mt-4 animate-pulse text-[10px] font-bold uppercase tracking-widest text-muted/40 text-center">
+            Optimizing Performance
+          </span>
+        </div>
+      }>
+        <div className="hidden" />
+      </Suspense>
+    </div>
   );
 };
 
-// If you want to pre-load a default model, uncomment this:
-// useGLTF.preload('/my_cool_product.glb');
-
-export default ModelViewer;
+export default memo(ModelViewer);

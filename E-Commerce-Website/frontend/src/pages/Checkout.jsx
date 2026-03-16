@@ -5,6 +5,7 @@ import api from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FiChevronLeft, FiCheck, FiTag } from "react-icons/fi";
+import PaymentModal from "../components/PaymentModal";
 
 const Checkout = () => {
   const { user } = useAuth();
@@ -99,11 +100,23 @@ const Checkout = () => {
   const totalDiscount = couponApplied ? couponDiscount : firstOrderDiscount;
   const finalTotal = subtotal - totalDiscount;
 
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
+
   const handleOrder = async () => {
     if (!address.trim()) {
       toast.error("Please enter a shipping address");
       return;
     }
+
+    if (paymentType === "COD") {
+      submitOrder();
+    } else {
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const submitOrder = async () => {
     setLoading(true);
     try {
       await api.post("/orders/place", {
@@ -113,11 +126,22 @@ const Checkout = () => {
         couponCode: couponApplied ? couponCode : null,
         shippingAddress: address,
       });
-      toast.success("Order placed successfully! 🎉");
-      refreshCart();
-      navigate("/");
+
+      if (paymentType !== "COD") {
+        setIsPaymentSuccess(true);
+        setTimeout(() => {
+          toast.success("Order placed successfully! 🎉");
+          refreshCart();
+          navigate("/");
+        }, 2000);
+      } else {
+        toast.success("Order placed successfully! 🎉");
+        refreshCart();
+        navigate("/");
+      }
     } catch (err) {
       toast.error(err?.response?.data?.error || "Failed to place order");
+      setIsPaymentModalOpen(false); // Close modal on error to show toast clearly
     } finally {
       setLoading(false);
     }
@@ -266,11 +290,6 @@ const Checkout = () => {
               </button>
             ))}
           </div>
-          {(paymentType === "Card" || paymentType === "UPI") && (
-            <div className="mt-5 rounded-lg border border-accent/20 bg-accent/5 p-5 text-[10px] font-bold uppercase tracking-widest text-accent/80 text-center">
-              Integration is simulated. No actual payment will be processed.
-            </div>
-          )}
         </div>
 
         <button
@@ -281,6 +300,15 @@ const Checkout = () => {
           {loading ? "Processing…" : `Pay ₹${Math.round(finalTotal)}`}
         </button>
       </div>
+
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        onPaymentSubmit={submitOrder}
+        amount={finalTotal}
+        isSubmitting={loading}
+        isSuccess={isPaymentSuccess}
+      />
     </div>
   );
 };

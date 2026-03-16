@@ -1,5 +1,5 @@
 import { Component, Suspense, useEffect, useMemo, useRef, memo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useGraph } from "@react-three/fiber";
 import {
   OrbitControls,
   useGLTF,
@@ -46,18 +46,18 @@ const ModelMesh = memo(({ url, activeColor }) => {
     return colorMap[key] || activeColor || "#ffffff";
   }, [activeColor]);
 
+  const { nodes, materials } = useGraph(scene);
+
   useEffect(() => {
-    if (!scene) return;
+    if (!materials) return;
     const colorObj = new Color(finalColorHex);
-    scene.traverse((child) => {
-      if (child.isMesh && child.material) {
-        if (child.material.color) {
-            child.material.color.set(colorObj);
-        }
-        child.material.needsUpdate = true;
+    // Directly update materials instead of traversing the whole tree
+    Object.values(materials).forEach((material) => {
+      if (material.color) {
+        material.color.set(colorObj);
       }
     });
-  }, [scene, finalColorHex]);
+  }, [materials, finalColorHex]);
 
   return <primitive object={scene} />;
 });
@@ -84,19 +84,23 @@ const ModelViewer = ({ modelUrl, activeColor }) => {
     <div className="relative h-full w-full bg-[var(--elevated)] overflow-hidden">
       <Canvas
         camera={{ position: [0, 0, 3.2], fov: 40 }}
-        dpr={0.75} // Reduced DPR for stability on high-poly models
+        dpr={[1, 1.5]} // Dynamic DPR for better balance
         gl={{ 
             antialias: false, 
-            powerPreference: "default",
+            powerPreference: "high-performance",
             alpha: true,
             stencil: false,
-            depth: true 
+            depth: true,
+            failIfMajorPerformanceCaveat: true
         }}
         flat={true} 
       >
         <ambientLight intensity={1.5} />
         <directionalLight position={[10, 10, 10]} intensity={2.5} castShadow={false} />
-        {hasModel && <Environment preset="studio" blur={1} />}
+        
+        <Suspense fallback={null}>
+          {hasModel && <Environment preset="studio" blur={1} />}
+        </Suspense>
 
         <Suspense fallback={null}>
           <Center>
@@ -120,11 +124,12 @@ const ModelViewer = ({ modelUrl, activeColor }) => {
         
         {hasModel && (
           <ContactShadows
-            resolution={128} // Significantly lower shadow map to prevent Context Loss
+            resolution={128} 
             scale={15}
             blur={2.5}
             opacity={0.2}
             far={1}
+            frames={1} // Only render shadow once to save massive GPU cycles
           />
         )}
       </Canvas>

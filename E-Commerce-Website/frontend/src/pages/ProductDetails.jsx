@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FiChevronLeft, FiHeart, FiShoppingBag } from "react-icons/fi";
+import { useGLTF } from "@react-three/drei";
 import { toast } from "react-toastify";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -56,6 +57,12 @@ const ProductDetails = () => {
   useEffect(() => {
     const status = product?.model3D?.generationStatus;
     setGenerationStatus(status || "not_started");
+    
+    // Preload model if available
+    const modelUrl = product?.model3D?.modelUrl || product?.modelUrl;
+    if (modelUrl) {
+      useGLTF.preload(modelUrl);
+    }
   }, [product]);
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiHeart, FiBox } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
+import { useGLTF } from "@react-three/drei";
 import { useAuth } from "../context/AuthContext";
 import { productByIdQueryOptions } from "../api/catalogQueries";
 import { buildImageSrcSet, toOptimizedImageUrl } from "../utils/imageUtils";
@@ -80,6 +81,10 @@ const ProductCard = ({ product, index = 0 }) => {
 
   const prefetchProductDetails = () => {
     queryClient.prefetchQuery(productByIdQueryOptions(product.productId));
+    const modelUrl = product?.model3D?.modelUrl || product?.modelUrl;
+    if (modelUrl) {
+      useGLTF.preload(modelUrl);
+    }
   };
 
   return (

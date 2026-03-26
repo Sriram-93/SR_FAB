@@ -12,7 +12,10 @@ import {
   FiShoppingBag,
   FiArrowLeft,
 } from "react-icons/fi";
-import { getProductImage } from "../utils/productImages";
+import { toOptimizedImageUrl } from "../utils/imageUtils";
+
+const CART_FALLBACK =
+  "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=150&q=60";
 
 const Cart = () => {
   const { user } = useAuth();
@@ -61,7 +64,25 @@ const Cart = () => {
     }
   };
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+        <FiShoppingBag size={48} className="mb-4 text-primary/20" />
+        <h2 className="text-xl font-bold text-primary">
+          Sign in to view your bag
+        </h2>
+        <p className="mt-2 text-primary/40 font-medium">
+          Access your personalized cart across all your devices.
+        </p>
+        <Link
+          to="/login"
+          className="mt-8 bg-primary px-8 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-bg transition hover:bg-accent hover:-translate-y-1 hover:shadow-xl duration-300"
+        >
+          Sign In
+        </Link>
+      </div>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -97,11 +118,16 @@ const Cart = () => {
             >
               <div className="h-32 w-24 bg-surface flex-shrink-0 rounded-xl overflow-hidden border border-primary/10">
                 <img
-                  src={item.product?.productImages || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=150&q=60"}
+                  src={toOptimizedImageUrl(
+                    item.product?.productImages || CART_FALLBACK,
+                    { width: 160, height: 220, quality: 62 },
+                  )}
                   alt={item.product?.productName}
                   className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => {
-                    e.target.src = "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=150&q=60";
+                    e.target.src = CART_FALLBACK;
                   }}
                 />
               </div>
@@ -173,13 +199,17 @@ const Cart = () => {
           </h2>
           <div className="space-y-4 border-b border-primary/5 pb-6 text-sm">
             <div className="flex justify-between">
-              <span className="text-primary/60 font-medium tracking-wide">Subtotal</span>
+              <span className="text-primary/60 font-medium tracking-wide">
+                Subtotal
+              </span>
               <span className="font-bold text-primary">
                 ₹{total.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-primary/60 font-medium tracking-wide">Shipping</span>
+              <span className="text-primary/60 font-medium tracking-wide">
+                Shipping
+              </span>
               <span className="font-bold text-primary">
                 {total >= 999 ? "Free" : "₹99"}
               </span>

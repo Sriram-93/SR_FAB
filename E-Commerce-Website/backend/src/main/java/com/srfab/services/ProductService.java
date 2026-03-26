@@ -1,5 +1,7 @@
 package com.srfab.services;
 
+import com.srfab.dto.CatalogCategoryDto;
+import com.srfab.dto.ProductListItemDto;
 import com.srfab.entities.Category;
 import com.srfab.entities.Product;
 import com.srfab.entities.ProductVariant;
@@ -7,9 +9,16 @@ import com.srfab.repositories.CategoryRepository;
 import com.srfab.repositories.ProductRepository;
 import com.srfab.repositories.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +30,45 @@ public class ProductService {
 
     public List<Product> getAllProducts() {
         return productRepository.findAll();
+    }
+
+    public Page<ProductListItemDto> getProductsPage(Integer categoryId, String search, String sortBy, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(1, Math.min(size, 60));
+        Sort sort = Objects.requireNonNull(resolveSort(sortBy), "sort must not be null");
+        Pageable pageable = PageRequest.of(safePage, safeSize, sort);
+
+        Page<Product> productPage;
+        if (search != null && !search.isBlank()) {
+            productPage = productRepository.findByProductNameContainingIgnoreCase(search.trim(), pageable);
+        } else if (categoryId != null) {
+            productPage = productRepository.findByCategory_CategoryId(categoryId, pageable);
+        } else {
+            productPage = productRepository.findAllBy(pageable);
+        }
+
+        return productPage.map(this::toListItemDto);
+    }
+
+    public List<ProductListItemDto> getTrendingProducts(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 24));
+        Pageable pageable = PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "productDiscount")
+                .and(Sort.by(Sort.Direction.DESC, "productId")));
+
+        Page<Product> page = productRepository.findByProductDiscountGreaterThan(0, pageable);
+
+        if (!page.hasContent()) {
+            page = productRepository.findAllBy(PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "productId")));
+        }
+
+        return page.stream().map(this::toListItemDto).collect(Collectors.toList());
+    }
+
+    public List<ProductListItemDto> getRelatedProducts(int productId, int categoryId, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 24));
+        Pageable pageable = PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "productId"));
+        Page<Product> page = productRepository.findByCategory_CategoryIdAndProductIdNot(categoryId, productId, pageable);
+        return page.stream().map(this::toListItemDto).collect(Collectors.toList());
     }
 
     public List<Product> getProductsByCategory(int categoryId) {
@@ -113,5 +161,48 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Variant not found"));
         variant.setStock(newStock);
         variantRepository.save(variant);
+    }
+
+    private ProductListItemDto toListItemDto(Product product) {
+        CatalogCategoryDto categoryDto = null;
+        if (product.getCategory() != null) {
+            categoryDto = new CatalogCategoryDto(
+                    product.getCategory().getCategoryId(),
+                    product.getCategory().getCategoryName()
+            );
+        }
+
+        List<String> colors = product.getVariants().stream()
+                .map(ProductVariant::getColor)
+                .filter(color -> color != null && !color.isBlank())
+                .map(color -> color.toLowerCase(Locale.ROOT))
+                .distinct()
+                .collect(Collectors.toList());
+
+        return new ProductListItemDto(
+                product.getProductId(),
+                product.getProductName(),
+                product.getProductDescription(),
+                product.getProductPrice(),
+                product.getProductDiscount(),
+                product.getProductPriceAfterDiscount(),
+                product.getProductImages(),
+                product.getBrand(),
+                categoryDto,
+                colors
+        );
+    }
+
+    private Sort resolveSort(String sortBy) {
+        if (sortBy == null || sortBy.isBlank() || "featured".equalsIgnoreCase(sortBy)) {
+            return Sort.by(Sort.Direction.DESC, "productId");
+        }
+
+        if ("discount".equalsIgnoreCase(sortBy)) {
+            return Sort.by(Sort.Direction.DESC, "productDiscount")
+                    .and(Sort.by(Sort.Direction.DESC, "productId"));
+        }
+
+        return Sort.by(Sort.Direction.DESC, "productId");
     }
 }

@@ -1,4 +1,6 @@
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/ExternalModelGenerationService.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/config/WebConfig.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/dto/CatalogCategoryDto.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/security/JwtAuthenticationFilter.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/ProductController.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/AnalyticsController.java
@@ -16,8 +18,10 @@
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/CouponRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/OrderRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/SubscriberController.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/exceptions/GlobalExceptionHandler.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/Model3DService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/CouponController.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/dto/ProductListItemDto.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/FileService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/CategoryService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/Subscriber.java
@@ -33,7 +37,9 @@
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/ProductRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/Model3D.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/Order.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/VirtualTryOnService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/Cart.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/TripoModelGenerationService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/Coupon.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/ProductVariantRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/OrderedProductRepository.java
@@ -42,6 +48,7 @@
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/dto/LoginRequest.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/CategoryController.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/OrderController.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/VirtualTryOnController.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/ProductService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/Product.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/security/CustomUserDetailsService.java
@@ -54,5 +61,6 @@
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/AuthController.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/OrderedProduct.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/ProductVariant.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/dto/PaginatedResponseDto.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/UserRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/CategoryRepository.java

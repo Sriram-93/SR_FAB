@@ -1,27 +1,48 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { FiChevronLeft, FiSearch } from "react-icons/fi";
+import { useQueryClient } from "@tanstack/react-query";
 import ProductCard from "../components/ProductCard";
 import ProductGridSkeleton from "../components/skeletons/ProductGridSkeleton";
 import QueryErrorState from "../components/QueryErrorState";
 import { groupProductsByStyle } from "../utils/productGrouping";
-import { useCategoriesQuery, useProductsQuery } from "../api/catalogQueries";
+import {
+  productsPageQueryOptions,
+  useCategoriesQuery,
+  useProductsPageQuery,
+} from "../api/catalogQueries";
 import { usePageSeo } from "../hooks/usePageSeo";
+
+const PAGE_SIZE = 20;
 
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState("featured");
+  const queryClient = useQueryClient();
 
   const selectedCat = searchParams.get("categoryId") || "all";
   const searchQueryRaw = searchParams.get("search") || "";
   const searchQuery = searchQueryRaw.toLowerCase();
+  const currentPage = Math.max(
+    0,
+    Number.parseInt(searchParams.get("page") || "1", 10) - 1,
+  );
 
   const {
-    data: products = [],
+    data: pageData,
     isLoading: isProductsLoading,
     isError: productsError,
     refetch: refetchProducts,
-  } = useProductsQuery();
+  } = useProductsPageQuery({
+    page: currentPage,
+    size: PAGE_SIZE,
+    sortBy,
+    categoryId:
+      selectedCat === "all" ? undefined : Number.parseInt(selectedCat, 10),
+    search: searchQueryRaw.trim() || undefined,
+  });
+
+  const products = pageData?.content || [];
 
   const {
     data: categories = [],
@@ -90,6 +111,28 @@ const Shop = () => {
   const isLoading = isProductsLoading || isCategoriesLoading;
   const hasError = productsError || categoriesError;
 
+  useEffect(() => {
+    if (!pageData?.hasNext) return;
+
+    queryClient.prefetchQuery(
+      productsPageQueryOptions({
+        page: currentPage + 1,
+        size: PAGE_SIZE,
+        sortBy,
+        categoryId:
+          selectedCat === "all" ? undefined : Number.parseInt(selectedCat, 10),
+        search: searchQueryRaw.trim() || undefined,
+      }),
+    );
+  }, [
+    currentPage,
+    pageData?.hasNext,
+    queryClient,
+    searchQueryRaw,
+    selectedCat,
+    sortBy,
+  ]);
+
   if (hasError) {
     return (
       <div className="animate-fade-in py-10">
@@ -120,13 +163,13 @@ const Shop = () => {
               {searchQuery ? `Search: "${searchQuery}"` : "All Collections"}
             </h1>
             <p className="mt-1 text-sm font-medium text-muted">
-              {sortedProducts.length} products
+              {pageData?.totalElements ?? sortedProducts.length} products
             </p>
           </div>
 
-          <div className="grid w-full gap-4 md:w-[420px] md:grid-cols-[1fr_auto]">
-            <label className="flex items-center gap-2 border border-primary/15 bg-surface px-3 py-2 text-xs">
-              <FiSearch className="text-primary/50" aria-hidden="true" />
+          <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row lg:w-[420px]">
+            <label className="flex flex-1 items-center gap-2 border border-primary/10 bg-surface/50 px-3 py-2.5 text-xs transition-focus focus-within:border-accent md:py-2">
+              <FiSearch className="text-primary/40" aria-hidden="true" />
               <input
                 type="search"
                 value={searchQueryRaw}
@@ -138,10 +181,11 @@ const Shop = () => {
                   } else {
                     next.delete("search");
                   }
+                  next.set("page", "1");
                   setSearchParams(next, { replace: true });
                 }}
-                placeholder="Search by product, brand, color"
-                className="w-full bg-transparent text-xs font-semibold tracking-wide text-primary outline-none placeholder:text-primary/35"
+                placeholder="Search products..."
+                className="w-full bg-transparent text-[11px] font-bold uppercase tracking-wider text-primary outline-none placeholder:text-primary/25 md:text-xs"
                 aria-label="Search products"
               />
             </label>
@@ -149,7 +193,7 @@ const Shop = () => {
             <select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value)}
-              className="w-full border border-primary/15 bg-surface px-4 py-3 text-xs font-semibold uppercase tracking-wide text-primary outline-none transition hover:border-primary/30 focus:border-accent"
+              className="w-full border border-primary/10 bg-surface/50 px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-primary outline-none transition hover:border-primary/25 focus:border-accent md:w-44 md:py-2"
               aria-label="Sort products"
             >
               <option value="featured">Featured</option>
@@ -160,18 +204,19 @@ const Shop = () => {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-2.5">
+        <div className="no-scrollbar mt-8 flex flex-nowrap gap-2 overflow-x-auto pb-2 md:mt-6 md:flex-wrap md:overflow-visible md:pb-0">
           <button
             type="button"
             onClick={() => {
               const next = new URLSearchParams(searchParams);
               next.delete("categoryId");
+              next.set("page", "1");
               setSearchParams(next, { replace: true });
             }}
-            className={`px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition ${
+            className={`whitespace-nowrap px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all sm:px-4 sm:py-2 ${
               selectedCat === "all"
-                ? "bg-primary text-bg"
-                : "border border-primary/15 text-primary/55 hover:border-accent hover:text-accent"
+                ? "bg-primary text-bg shadow-lg shadow-primary/10"
+                : "border border-primary/10 bg-surface/30 text-primary/50 hover:border-accent hover:text-accent"
             }`}
           >
             All Collections
@@ -183,12 +228,13 @@ const Shop = () => {
               onClick={() => {
                 const next = new URLSearchParams(searchParams);
                 next.set("categoryId", String(cat.categoryId));
+                next.set("page", "1");
                 setSearchParams(next, { replace: true });
               }}
-              className={`px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition ${
+              className={`whitespace-nowrap px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all sm:px-4 sm:py-2 ${
                 selectedCat === String(cat.categoryId)
-                  ? "bg-primary text-bg"
-                  : "border border-primary/15 text-primary/55 hover:border-accent hover:text-accent"
+                  ? "bg-primary text-bg shadow-lg shadow-primary/10"
+                  : "border border-primary/10 bg-surface/30 text-primary/50 hover:border-accent hover:text-accent"
               }`}
             >
               {cat.categoryName}
@@ -207,13 +253,49 @@ const Shop = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
-          {sortedProducts.map((product, index) => (
-            <div key={product.productId} className="h-full">
-              <ProductCard product={product} index={index} />
+        <>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-8">
+            {sortedProducts.map((product, index) => (
+              <div key={product.productId} className="h-full">
+                <ProductCard product={product} index={index} />
+              </div>
+            ))}
+          </div>
+
+          {(pageData?.totalPages || 0) > 1 && (
+            <div className="mt-10 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                disabled={!pageData?.hasPrevious}
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.set("page", String(currentPage));
+                  setSearchParams(next, { replace: true });
+                }}
+                className="border border-primary/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              <span className="px-3 text-[10px] font-bold uppercase tracking-widest text-primary/60">
+                Page {currentPage + 1} of {pageData?.totalPages}
+              </span>
+
+              <button
+                type="button"
+                disabled={!pageData?.hasNext}
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.set("page", String(currentPage + 2));
+                  setSearchParams(next, { replace: true });
+                }}
+                className="border border-primary/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );

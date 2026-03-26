@@ -4,8 +4,10 @@ import { FiX, FiMinus, FiPlus, FiTrash2, FiShoppingBag } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import api from "../api/axios";
+import { toOptimizedImageUrl } from "../utils/imageUtils";
 
-import { getProductImage } from "../utils/productImages";
+const CART_PREVIEW_FALLBACK =
+  "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=120&q=60";
 
 const CartPreview = ({ isOpen, onClose }) => {
   const { user } = useAuth();
@@ -105,12 +107,16 @@ const CartPreview = ({ isOpen, onClose }) => {
               {items.map((item) => (
                 <li key={item.id} className="flex gap-4 py-4">
                   <img
-                    src={getProductImage(item.product?.productId, 120, 160)}
+                    src={toOptimizedImageUrl(
+                      item.product?.productImages || CART_PREVIEW_FALLBACK,
+                      { width: 120, height: 160, quality: 60 },
+                    )}
                     alt={item.product?.productName}
                     className="h-24 w-20 shrink-0 rounded object-cover bg-primary/5"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
-                      e.target.src =
-                        "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=120&q=60";
+                      e.target.src = CART_PREVIEW_FALLBACK;
                     }}
                   />
                   <div className="flex flex-1 flex-col justify-between">

@@ -7,9 +7,12 @@ import QueryErrorState from "../components/QueryErrorState";
 import { FiArrowRight } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { groupProductsByStyle } from "../utils/productGrouping";
-import { useCategoriesQuery, useProductsQuery } from "../api/catalogQueries";
+import {
+  useCategoriesQuery,
+  useTrendingProductsQuery,
+} from "../api/catalogQueries";
 import { usePageSeo } from "../hooks/usePageSeo";
-import { toOptimizedImageUrl } from "../utils/imageUtils";
+import { buildImageSrcSet, toOptimizedImageUrl } from "../utils/imageUtils";
 
 const HERO_IMG =
   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&q=80";
@@ -36,11 +39,11 @@ const Home = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const {
-    data: products = [],
+    data: trendingProducts = [],
     isLoading: isProductsLoading,
     isError: productsError,
     refetch: refetchProducts,
-  } = useProductsQuery();
+  } = useTrendingProductsQuery({ limit: 8 });
 
   const {
     data: categories = [],
@@ -83,8 +86,8 @@ const Home = () => {
   };
 
   const styleProducts = useMemo(
-    () => groupProductsByStyle(products),
-    [products],
+    () => groupProductsByStyle(trendingProducts),
+    [trendingProducts],
   );
 
   const isCatalogLoading = isProductsLoading || isCategoriesLoading;
@@ -98,10 +101,17 @@ const Home = () => {
       {/* ── Hero ───────────────────────────── */}
       <section className="relative flex h-[90vh] items-center justify-center overflow-hidden">
         <img
-          src={toOptimizedImageUrl(HERO_IMG, { width: 1600, height: 900 })}
+          src={toOptimizedImageUrl(HERO_IMG, {
+            width: 1280,
+            height: 720,
+            quality: 72,
+          })}
+          srcSet={buildImageSrcSet(HERO_IMG, "16:9")}
+          sizes="100vw"
           alt="SR FAB Fashion Collection"
           className="absolute inset-0 h-full w-full object-cover"
           loading="eager"
+          fetchPriority="high"
           decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
@@ -178,12 +188,20 @@ const Home = () => {
             >
               <img
                 src={toOptimizedImageUrl(resolveCategoryImage(cat), {
-                  width: 900,
-                  height: 1200,
+                  width: 720,
+                  height: 960,
+                  quality: 68,
                 })}
+                srcSet={buildImageSrcSet(resolveCategoryImage(cat), "3:4")}
+                sizes={
+                  index === 0
+                    ? "(max-width: 640px) 92vw, (max-width: 1024px) 92vw, 60vw"
+                    : "(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 31vw"
+                }
                 alt={cat.categoryName}
                 className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110"
                 loading="lazy"
+                fetchPriority="low"
                 decoding="async"
               />
               <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.15)_0%,transparent_28%,transparent_72%,rgba(255,255,255,0.14)_100%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -240,7 +258,7 @@ const Home = () => {
               <ProductGridSkeleton count={8} />
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-                {styleProducts.slice(0, 8).map((product, i) => (
+                {styleProducts.map((product, i) => (
                   <ProductCard
                     key={product.productId}
                     product={product}

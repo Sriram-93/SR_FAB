@@ -1,16 +1,14 @@
 import { lazy, memo, Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiHeart, FiBox } from "react-icons/fi";
+import { FiHeart } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGLTF } from "@react-three/drei";
 import { useAuth } from "../context/AuthContext";
 import { productByIdQueryOptions } from "../api/catalogQueries";
 import { buildImageSrcSet, toOptimizedImageUrl } from "../utils/imageUtils";
 import { FALLBACK_IMAGE } from "../utils/productImages";
 
 // Lazy load the heavy 3D Modal component
-const ModelViewerModal = lazy(() => import("./ModelViewerModal"));
 
 // Curated Unsplash fashion photos keyed by category keyword
 const ProductCard = ({ product, index = 0 }) => {
@@ -18,12 +16,7 @@ const ProductCard = ({ product, index = 0 }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [inWishlist, setInWishlist] = useState(false);
-  const [show3D, setShow3D] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const modelStatus = String(
-    product?.model3D?.generationStatus || "",
-  ).toLowerCase();
-  const hasReady3D = ["ready", "completed", "success"].includes(modelStatus);
 
   const colorMap = {
     black: "#1A1A1A",
@@ -53,7 +46,7 @@ const ProductCard = ({ product, index = 0 }) => {
     product.productImages || product.productImage || FALLBACK_IMAGE;
   const imgSrc = imageFailed
     ? FALLBACK_IMAGE
-    : toOptimizedImageUrl(rawImage, { width: 640, height: 853 });
+    : toOptimizedImageUrl(rawImage, { width: 480, height: 640, quality: 68 });
   const imgSrcSet = buildImageSrcSet(rawImage, "3:4");
 
   const handleWishlist = (e) => {
@@ -81,10 +74,6 @@ const ProductCard = ({ product, index = 0 }) => {
 
   const prefetchProductDetails = () => {
     queryClient.prefetchQuery(productByIdQueryOptions(product.productId));
-    const modelUrl = product?.model3D?.modelUrl || product?.modelUrl;
-    if (modelUrl) {
-      useGLTF.preload(modelUrl);
-    }
   };
 
   return (
@@ -110,35 +99,17 @@ const ProductCard = ({ product, index = 0 }) => {
           <img
             src={imgSrc}
             srcSet={imgSrcSet}
-            sizes="(max-width: 768px) 46vw, (max-width: 1024px) 30vw, 22vw"
+            sizes="(max-width: 480px) 45vw, (max-width: 768px) 42vw, (max-width: 1200px) 28vw, 22vw"
             alt={product.productName}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             loading="lazy"
+            fetchPriority="low"
             decoding="async"
             onError={(e) => {
               setImageFailed(true);
               e.currentTarget.src = FALLBACK_IMAGE;
             }}
           />
-
-          {/* 3D Fit Check Toggle Button */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShow3D(true);
-            }}
-            className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-bg/85 shadow-md backdrop-blur-md transition hover:scale-105 hover:bg-bg"
-            title={hasReady3D ? "Open 3D model" : "Open cube preview"}
-            aria-label="Open 3D fit preview"
-          >
-            <FiBox size={17} className="text-primary" />
-            <span
-              className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-white ${
-                hasReady3D ? "bg-emerald-500" : "bg-amber-400"
-              }`}
-            />
-          </button>
 
           {/* Discount Badge */}
           {product.productDiscount > 0 && (
@@ -221,17 +192,6 @@ const ProductCard = ({ product, index = 0 }) => {
           </div>
         </div>
       </article>
-
-      {/* Render the immersive 3D Modal if show3D is true (Lazy Loaded) */}
-      <Suspense fallback={<div className="sr-only">Loading model preview</div>}>
-        {show3D && (
-          <ModelViewerModal
-            product={product}
-            isOpen={show3D}
-            onClose={() => setShow3D(false)}
-          />
-        )}
-      </Suspense>
     </div>
   );
 };
@@ -244,11 +204,7 @@ const areEqual = (prevProps, nextProps) => {
       nextProps.product?.productPriceAfterDiscount &&
     prevProps.product?.productPrice === nextProps.product?.productPrice &&
     prevProps.product?.productDiscount === nextProps.product?.productDiscount &&
-    prevProps.product?.productImages === nextProps.product?.productImages &&
-    prevProps.product?.model3D?.generationStatus ===
-      nextProps.product?.model3D?.generationStatus &&
-    prevProps.product?.model3D?.modelUrl ===
-      nextProps.product?.model3D?.modelUrl
+    prevProps.product?.productImages === nextProps.product?.productImages
   );
 };
 

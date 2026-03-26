@@ -23,11 +23,19 @@ public class Model3DService {
     private final ProductRepository productRepository;
     private final Model3DRepository model3DRepository;
     private final ModelGenerationJobRepository jobRepository;
-    private final ExternalModelGenerationService externalModelGenerationService;
+    private final java.util.List<ExternalModelGenerationService> generationServices;
     private final CloudinaryService cloudinaryService;
 
     @Value("${ai.3d.provider:hf}")
     private String providerName;
+
+    private ExternalModelGenerationService getActiveService() {
+        return generationServices.stream()
+            .filter(s -> s.getProviderName().equalsIgnoreCase(providerName))
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("No ExternalModelGenerationService found for provider: " + providerName));
+    }
+
 
     @Value("${ai.model.cloudinary-folder:products/3d-models}")
     private String modelFolder;
@@ -38,6 +46,14 @@ public class Model3DService {
 
         if (sourceImageUrl == null || sourceImageUrl.isBlank()) {
             throw new RuntimeException("sourceImageUrl is required for generation");
+        }
+
+        if (sourceImageUrl.startsWith("data:image")) {
+            try {
+                sourceImageUrl = cloudinaryService.uploadGeneratedImage(sourceImageUrl, "products/temp");
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to upload local image to Cloudinary for Tripo: " + e.getMessage());
+            }
         }
 
         Model3D model3D = model3DRepository.findByProduct_ProductId(productId)
@@ -61,7 +77,7 @@ public class Model3DService {
         job.setProvider(providerName);
         job.setStatus("queued");
 
-        ExternalModelGenerationService.SubmitResult submit = externalModelGenerationService
+        ExternalModelGenerationService.SubmitResult submit = getActiveService()
             .submitFromImage(sourceImageUrl, prompt);
 
         if (!submit.ok()) {
@@ -97,7 +113,7 @@ public class Model3DService {
             .orElseThrow(() -> new RuntimeException("Generation job not found"));
 
         if ("processing".equalsIgnoreCase(job.getStatus()) && job.getExternalJobId() != null) {
-            ExternalModelGenerationService.PollResult poll = externalModelGenerationService.poll(job.getExternalJobId());
+            ExternalModelGenerationService.PollResult poll = getActiveService().poll(job.getExternalJobId());
             syncJobState(job, poll);
         }
 
@@ -198,5 +214,64 @@ public class Model3DService {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    public Map<String, Object> startCustomGeneration(String prompt) {
+        if (prompt == null || prompt.isBlank()) {
+            throw new RuntimeException("prompt is required for generation");
+        }
+
+        ExternalModelGenerationService.SubmitResult submit = getActiveService().submitFromText(prompt);
+
+        if (!submit.ok()) {
+            return Map.of(
+                "status", "failed",
+                "error", submit.errorMessage() != null ? submit.errorMessage() : "Unknown error"
+            );
+        }
+
+        return Map.of(
+            "jobId", submit.externalJobId(),
+            "status", "processing"
+        );
+    }
+
+    public Map<String, Object> getCustomJobStatus(String externalJobId) {
+        ExternalModelGenerationService.PollResult poll = getActiveService().poll(externalJobId);
+
+        if (poll.failed()) {
+
+            return Map.of(
+                "jobId", externalJobId,
+                "status", "failed",
+                "error", poll.errorMessage() != null ? poll.errorMessage() : "Unknown error"
+            );
+        }
+
+        if (poll.done()) {
+            String persistedModelUrl;
+            try {
+                persistedModelUrl = cloudinaryService.uploadGeneratedModel(poll.modelUrl(), modelFolder);
+            } catch (Exception uploadError) {
+                System.err.println("Failed to persist custom model to Cloudinary: " + uploadError.getMessage());
+                return Map.of(
+                    "jobId", externalJobId,
+                    "status", "failed",
+                    "error", "Model generated but failed to save permanently: " + uploadError.getMessage()
+                );
+            }
+
+            return Map.of(
+                "jobId", externalJobId,
+                "status", "ready",
+                "modelUrl", persistedModelUrl,
+                "modelFormat", detectFormat(persistedModelUrl)
+            );
+        } else {
+            return Map.of(
+                "jobId", externalJobId,
+                "status", "processing"
+            );
+        }
     }
 }

@@ -47,7 +47,6 @@ public class CloudinaryService {
     /**
      * Delete an image from Cloudinary by its public ID.
      */
-    @SuppressWarnings("unchecked")
     public void deleteImage(String publicId) {
         try {
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
@@ -61,14 +60,27 @@ public class CloudinaryService {
      * Upload a generated 3D model to Cloudinary as a raw asset.
      * Supports remote URL and base64 data URI inputs.
      */
-    @SuppressWarnings("unchecked")
     public String uploadGeneratedModel(String source, String folder) {
+        // Use "image" resource type for GLB models to allow sizes up to 25MB and get thumbnail support
+        return uploadGeneratedInternal(source, folder, "image");
+    }
+
+    /**
+     * Upload a generated image to Cloudinary.
+     */
+    @SuppressWarnings("unchecked")
+    public String uploadGeneratedImage(String source, String folder) {
+        return uploadGeneratedInternal(source, folder, "image");
+    }
+
+    @SuppressWarnings("unchecked")
+    private String uploadGeneratedInternal(String source, String folder, String resourceType) {
         if (source == null || source.isBlank()) {
-            throw new RuntimeException("Generated model source is empty");
+            throw new RuntimeException("Generated source is empty");
         }
 
         String normalizedFolder = (folder == null || folder.isBlank())
-            ? "sr-fab/products/3d-models"
+            ? "sr-fab/generated"
             : "sr-fab/" + folder;
 
         try {
@@ -78,32 +90,44 @@ public class CloudinaryService {
                 result = cloudinary.uploader().upload(bytes,
                     ObjectUtils.asMap(
                         "folder", normalizedFolder,
-                        "resource_type", "raw",
-                        "public_id", "model-" + UUID.randomUUID()
+                        "resource_type", resourceType,
+                        "public_id", "gen-" + UUID.randomUUID()
                     ));
             } else {
                 byte[] bytes = restTemplate.getForObject(source, byte[].class);
                 if (bytes == null || bytes.length == 0) {
-                    throw new RuntimeException("Failed to download generated model from provider URL");
+                    throw new RuntimeException("Failed to download generated content from source URL");
                 }
 
-                result = cloudinary.uploader().upload(bytes,
-                    ObjectUtils.asMap(
-                        "folder", normalizedFolder,
-                        "resource_type", "raw",
-                        "public_id", "model-" + UUID.randomUUID()
-                    ));
+                if (bytes.length > 10 * 1024 * 1024 || "image".equals(resourceType)) {
+                    // Use uploadLarge for chunked upload to bypass the 10MB limit
+                    java.io.InputStream inputStream = new java.io.ByteArrayInputStream(bytes);
+                    result = cloudinary.uploader().uploadLarge(inputStream,
+                        ObjectUtils.asMap(
+                            "folder", normalizedFolder,
+                            "resource_type", resourceType,
+                            "public_id", "gen-" + UUID.randomUUID(),
+                            "chunk_size", 6000000 // 6MB chunks
+                        ));
+                } else {
+                    result = cloudinary.uploader().upload(bytes,
+                        ObjectUtils.asMap(
+                            "folder", normalizedFolder,
+                            "resource_type", resourceType,
+                            "public_id", "gen-" + UUID.randomUUID()
+                        ));
+                }
             }
 
             String url = (String) result.get("secure_url");
             if (url == null || url.isBlank()) {
-                throw new RuntimeException("Cloudinary did not return secure_url for model upload");
+                throw new RuntimeException("Cloudinary did not return secure_url");
             }
-            log.info("Generated model uploaded to Cloudinary: {}", url);
+            log.info("Generated {} uploaded to Cloudinary: {}", resourceType, url);
             return url;
         } catch (Exception ex) {
-            log.error("Cloudinary model upload failed: {}", ex.getMessage());
-            throw new RuntimeException("Generated model upload failed: " + ex.getMessage());
+            log.error("Cloudinary upload failed: {}", ex.getMessage());
+            throw new RuntimeException("Generated content upload failed: " + ex.getMessage());
         }
     }
 

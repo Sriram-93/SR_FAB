@@ -35,7 +35,7 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full border border-primary/10 bg-surface px-5 py-4 text-sm text-primary outline-none transition-all duration-300 focus:border-accent focus:shadow-[0_0_20px_rgba(201,169,110,0.1)] rounded-none"
-              placeholder="Your email address"
+              placeholder="you@example.com"
             />
           </div>
           <div className="group">

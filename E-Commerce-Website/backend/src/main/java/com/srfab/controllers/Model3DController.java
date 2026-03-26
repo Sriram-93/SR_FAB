@@ -47,4 +47,23 @@ public class Model3DController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/generate-custom")
+    public ResponseEntity<?> generateCustom(@RequestBody Map<String, String> payload) {
+        try {
+            String prompt = payload.getOrDefault("prompt", "a generic 3d model");
+            return ResponseEntity.ok(model3DService.startCustomGeneration(prompt));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/generate-custom/{taskId}")
+    public ResponseEntity<?> getCustomJobStatus(@PathVariable String taskId) {
+        try {
+            return ResponseEntity.ok(model3DService.getCustomJobStatus(taskId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

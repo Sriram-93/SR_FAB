@@ -32,7 +32,7 @@ public class Product {
     @Column(name = "discount")
     private int productDiscount;
 
-    @Column(name = "image", length = 100)
+    @Column(name = "image", length = 512)
     private String productImages;
 
     // ── Fashion-Specific Fields ──

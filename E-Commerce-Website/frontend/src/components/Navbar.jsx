@@ -227,6 +227,18 @@ const Navbar = ({ onCartOpen }) => {
       {mobileOpen && (
         <div className="animate-fade-in border-t border-[var(--line)] bg-surface md:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 text-sm font-medium uppercase tracking-widest text-primary/80">
+            <form onSubmit={(e) => { handleSearch(e); setMobileOpen(false); }} className="flex items-center border border-[var(--line)] bg-[var(--elevated)] rounded-full px-4 py-2 w-full mb-2">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full bg-transparent text-[10px] font-bold uppercase tracking-widest outline-none placeholder:text-primary/30 text-primary"
+              />
+              <button type="submit" className="text-primary hover:text-accent ml-2">
+                <FiSearch size={16} />
+              </button>
+            </form>
             <Link to="/" onClick={() => setMobileOpen(false)}>
               Home
             </Link>

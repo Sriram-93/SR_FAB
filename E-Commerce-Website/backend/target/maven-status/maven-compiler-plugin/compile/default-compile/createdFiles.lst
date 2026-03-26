@@ -1,10 +1,13 @@
 com/srfab/security/CustomUserDetailsService.class
 com/srfab/entities/Cart.class
+com/srfab/dto/PaginatedResponseDto.class
 com/srfab/config/AsyncConfig.class
 com/srfab/controllers/OrderController.class
 com/srfab/entities/Order.class
+com/srfab/services/TripoModelGenerationService.class
 com/srfab/entities/Subscriber.class
 com/srfab/repositories/OrderRepository.class
+com/srfab/dto/CatalogCategoryDto.class
 com/srfab/services/ExternalModelGenerationService$PollResult.class
 com/srfab/services/HuggingFaceModelGenerationService$GenerationResult.class
 com/srfab/controllers/Model3DController.class
@@ -15,9 +18,11 @@ com/srfab/repositories/CartRepository.class
 com/srfab/repositories/AdminRepository.class
 com/srfab/services/ExternalModelGenerationService.class
 com/srfab/entities/ModelGenerationJob.class
+com/srfab/exceptions/GlobalExceptionHandler.class
 com/srfab/entities/Product.class
 com/srfab/repositories/OrderedProductRepository.class
 com/srfab/repositories/ProductVariantRepository.class
+com/srfab/services/VirtualTryOnService.class
 com/srfab/controllers/CategoryController.class
 com/srfab/controllers/ProductController.class
 com/srfab/dto/LoginRequest.class
@@ -26,6 +31,8 @@ com/srfab/entities/Admin.class
 com/srfab/services/CartService.class
 com/srfab/controllers/AnalyticsController.class
 com/srfab/utils/OrderIdGenerator.class
+com/srfab/dto/ProductListItemDto.class
+com/srfab/services/VirtualTryOnService$VtoJob.class
 com/srfab/controllers/AuthController.class
 com/srfab/repositories/CategoryRepository.class
 com/srfab/controllers/SubscriberController.class
@@ -46,7 +53,9 @@ com/srfab/services/ProductService.class
 com/srfab/config/DataInitializer.class
 com/srfab/entities/Category.class
 com/srfab/controllers/CouponController.class
+com/srfab/controllers/VirtualTryOnController.class
 com/srfab/services/AuthService.class
+com/srfab/config/WebConfig.class
 com/srfab/repositories/WishlistRepository.class
 com/srfab/repositories/Model3DRepository.class
 com/srfab/repositories/ModelGenerationJobRepository.class
@@ -54,6 +63,7 @@ com/srfab/entities/ProductVariant.class
 com/srfab/repositories/CouponRepository.class
 com/srfab/services/CategoryService.class
 com/srfab/services/OrderService.class
+com/srfab/services/VirtualTryOnService$NamedByteArrayResource.class
 com/srfab/repositories/UserRepository.class
 com/srfab/dto/OrderRequest.class
 com/srfab/services/ExternalModelGenerationService$SubmitResult.class

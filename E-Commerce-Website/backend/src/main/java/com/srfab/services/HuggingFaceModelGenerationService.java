@@ -42,7 +42,13 @@ public class HuggingFaceModelGenerationService implements ExternalModelGeneratio
     private final ConcurrentMap<String, LocalJobState> jobs = new ConcurrentHashMap<>();
 
     @Override
+    public String getProviderName() {
+        return "hf";
+    }
+
+    @Override
     public SubmitResult submitFromImage(String sourceImageUrl, String prompt) {
+
         if (!"hf".equalsIgnoreCase(activeProvider)) {
             return new SubmitResult(false, null, "failed", "Unsupported ai.3d.provider; expected 'hf'");
         }
@@ -72,7 +78,13 @@ public class HuggingFaceModelGenerationService implements ExternalModelGeneratio
     }
 
     @Override
+    public SubmitResult submitFromText(String prompt) {
+        return new SubmitResult(false, null, "failed", "Text-to-model not currently supported for Hugging Face provider");
+    }
+
+    @Override
     public PollResult poll(String externalJobId) {
+
         LocalJobState state = jobs.get(externalJobId);
         if (state == null) {
             return new PollResult(true, true, "failed", null, "Generation job not found");

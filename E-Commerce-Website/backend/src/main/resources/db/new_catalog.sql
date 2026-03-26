@@ -1,5 +1,5 @@
 -- Auto-generated full catalog reset + rebuild for Men's Pure Cotton
-USE `srfab`;
+USE `defaultdb`;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 

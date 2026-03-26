@@ -1,18 +1,16 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FiChevronLeft, FiHeart, FiShoppingBag } from "react-icons/fi";
-import { useGLTF } from "@react-three/drei";
 import { toast } from "react-toastify";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import ProductCard from "../components/ProductCard";
 import ProductDetailsSkeleton from "../components/skeletons/ProductDetailsSkeleton";
 import QueryErrorState from "../components/QueryErrorState";
-import { useProductByIdQuery, useProductsQuery } from "../api/catalogQueries";
 import {
-  fetchModelGenerationStatus,
-  triggerModelGeneration,
-} from "../api/modelApi";
+  useProductByIdQuery,
+  useRelatedProductsQuery,
+} from "../api/catalogQueries";
 import {
   groupProductsByStyle,
   toBaseProductName,
@@ -21,7 +19,6 @@ import { buildImageSrcSet, toOptimizedImageUrl } from "../utils/imageUtils";
 import { FALLBACK_IMAGE } from "../utils/productImages";
 import { usePageSeo } from "../hooks/usePageSeo";
 
-const ModelViewerModal = lazy(() => import("../components/ModelViewerModal"));
 const VirtualTryOnModal = lazy(() => import("../components/VirtualTryOnModal"));
 
 const getPrimaryColor = (product) => {
@@ -39,11 +36,8 @@ const ProductDetails = () => {
   const { user } = useAuth();
 
   const [selectionByProduct, setSelectionByProduct] = useState({});
-  const [show3D, setShow3D] = useState(false);
   const [showTryOn, setShowTryOn] = useState(false);
   const [imageErrorByProduct, setImageErrorByProduct] = useState({});
-  const [generationStatus, setGenerationStatus] = useState("not_started");
-  const [isGeneratingModel, setIsGeneratingModel] = useState(false);
 
   const {
     data: product,
@@ -52,18 +46,11 @@ const ProductDetails = () => {
     refetch,
   } = useProductByIdQuery(id);
 
-  const { data: allProducts = [] } = useProductsQuery();
-
-  useEffect(() => {
-    const status = product?.model3D?.generationStatus;
-    setGenerationStatus(status || "not_started");
-    
-    // Preload model if available
-    const modelUrl = product?.model3D?.modelUrl || product?.modelUrl;
-    if (modelUrl) {
-      useGLTF.preload(modelUrl);
-    }
-  }, [product]);
+  const { data: relatedProductsRaw = [] } = useRelatedProductsQuery({
+    productId: product?.productId,
+    categoryId: product?.category?.categoryId,
+    limit: 16,
+  });
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -119,7 +106,7 @@ const ProductDetails = () => {
     const styleName = toBaseProductName(
       product.productName || "",
     ).toLowerCase();
-    return groupProductsByStyle(allProducts)
+    return groupProductsByStyle(relatedProductsRaw)
       .filter(
         (item) =>
           item.category?.categoryId === product.category.categoryId &&
@@ -127,7 +114,7 @@ const ProductDetails = () => {
           toBaseProductName(item.productName || "").toLowerCase() !== styleName,
       )
       .slice(0, 4);
-  }, [allProducts, product]);
+  }, [product, relatedProductsRaw]);
 
   const sizes = useMemo(
     () => [
@@ -180,79 +167,6 @@ const ProductDetails = () => {
     );
   }, [product, selectedColor, selectedSize]);
 
-  const canGenerateModel = user?.role === "ROLE_ADMIN";
-  const sourceImageUrl =
-    product?.productImages || product?.productImage || FALLBACK_IMAGE;
-
-  const pollModelJob = async (jobId) => {
-    // Poll until generation is complete/fails, then refresh product model metadata.
-    for (let attempt = 0; attempt < 30; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-      const data = await fetchModelGenerationStatus(jobId);
-      const status = String(data?.status || "").toLowerCase();
-      if (status) setGenerationStatus(status);
-
-      if (status === "completed") {
-        await refetch();
-        setGenerationStatus("ready");
-        toast.success("3D model generated successfully");
-        return true;
-      }
-
-      if (status === "failed") {
-        await refetch();
-        toast.error(data?.error || "3D generation failed");
-        return false;
-      }
-    }
-
-    toast.info("3D generation is still processing. Check again shortly.");
-    return false;
-  };
-
-  const handleGenerate3D = async () => {
-    if (!canGenerateModel) {
-      toast.info("Only admin can generate 3D models");
-      return;
-    }
-
-    if (!sourceImageUrl) {
-      toast.error("No source image found for this product");
-      return;
-    }
-
-    try {
-      setIsGeneratingModel(true);
-      setGenerationStatus("queued");
-
-      const payload = await triggerModelGeneration({
-        productId: product.productId,
-        sourceImageUrl,
-        prompt: `${product.productName} high quality apparel 3d model`,
-      });
-
-      const status = String(payload?.status || "processing").toLowerCase();
-      const jobId = payload?.jobId;
-      setGenerationStatus(status);
-
-      if (!jobId) {
-        throw new Error("Missing generation job id");
-      }
-
-      toast.info("3D generation started. This can take a minute.");
-      await pollModelJob(jobId);
-    } catch (error) {
-      const message =
-        error?.response?.data?.error ||
-        error?.message ||
-        "Unable to start 3D generation";
-      toast.error(message);
-      setGenerationStatus("failed");
-    } finally {
-      setIsGeneratingModel(false);
-    }
-  };
-
   if (isLoading) {
     return <ProductDetailsSkeleton />;
   }
@@ -274,7 +188,7 @@ const ProductDetails = () => {
     imageFailed
       ? FALLBACK_IMAGE
       : product.productImages || product.productImage || FALLBACK_IMAGE,
-    { width: 900, height: 1125 },
+    { width: 800, height: 1000, quality: 72 },
   );
 
   return (
@@ -289,16 +203,7 @@ const ProductDetails = () => {
       <div className="grid gap-10 md:grid-cols-2 lg:gap-16">
         <div
           className="group relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-2xl border border-primary/5 bg-surface shadow-sm"
-          onClick={() => setShow3D(true)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              setShow3D(true);
-            }
-          }}
-          aria-label={`Open 3D preview for ${product.productName}`}
+          aria-label={product.productName}
         >
           <img
             src={primaryImage}
@@ -306,10 +211,11 @@ const ProductDetails = () => {
               product.productImages || product.productImage,
               "4:5",
             )}
-            sizes="(max-width: 768px) 92vw, 44vw"
+            sizes="(max-width: 768px) 92vw, (max-width: 1280px) 48vw, 44vw"
             alt={product.productName}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             loading="eager"
+            fetchPriority="high"
             decoding="async"
             onError={() => {
               setImageErrorByProduct((prev) => ({ ...prev, [id]: true }));
@@ -485,25 +391,16 @@ const ProductDetails = () => {
             <button
               type="button"
               onClick={() => setShowTryOn(true)}
-              className="border border-accent/30 bg-accent/10 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-accent transition hover:bg-accent/20"
+              className="group relative border border-accent/40 bg-accent/10 px-8 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-accent transition-all hover:bg-accent/20 hover:shadow-[0_0_20px_rgba(252,163,17,0.2)] active:scale-95"
             >
-              Try On (Webcam / Selfie)
+              <div className="flex items-center gap-3">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
+                </span>
+                AI Virtual Try-On
+              </div>
             </button>
-
-            <button
-              type="button"
-              onClick={handleGenerate3D}
-              disabled={!canGenerateModel || isGeneratingModel}
-              className="border border-primary/20 bg-primary/5 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-primary transition hover:border-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isGeneratingModel
-                ? "Generating 3D..."
-                : "Generate 3D from Image"}
-            </button>
-
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
-              3D Status: {generationStatus.replaceAll("_", " ")}
-            </span>
           </div>
         </div>
       </div>
@@ -533,16 +430,6 @@ const ProductDetails = () => {
           </div>
         </section>
       )}
-
-      <Suspense fallback={null}>
-        {show3D && (
-          <ModelViewerModal
-            product={product}
-            isOpen={show3D}
-            onClose={() => setShow3D(false)}
-          />
-        )}
-      </Suspense>
 
       <Suspense fallback={null}>
         {showTryOn && (

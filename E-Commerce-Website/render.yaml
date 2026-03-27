@@ -3,7 +3,7 @@ services:
   - type: web
     name: sr-fab-backend
     runtime: docker
-    rootDir: backend
+    rootDir: E-Commerce-Website/backend
     dockerfilePath: Dockerfile
     plan: free
     envVars:
@@ -13,9 +13,9 @@ services:
     healthCheckPath: /api/health
 
   # SR FAB Frontend (Vite Static Site)
-  - type: static
+  - type: static_site
     name: sr-fab-frontend
-    rootDir: frontend
+    rootDir: E-Commerce-Website/frontend
     buildCommand: npm install && npm run build
     publishPath: dist
     plan: free

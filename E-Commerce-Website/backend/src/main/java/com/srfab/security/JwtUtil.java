@@ -10,15 +10,17 @@ import com.srfab.entities.User;
 
 import jakarta.annotation.PostConstruct;
 import java.security.Key;
+import java.security.SecureRandom;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret:${JWT_SECRET:}}")
     private String secret;
 
     @Value("${jwt.expiration}")
@@ -28,7 +30,33 @@ public class JwtUtil {
 
     @PostConstruct
     public void init() {
-        this.key = Keys.hmacShaKeyFor(hexStringToByteArray(secret));
+        this.key = initializeKey(secret);
+    }
+
+    private Key initializeKey(String configuredSecret) {
+        String normalized = configuredSecret == null ? "" : configuredSecret.trim().toLowerCase(Locale.ROOT);
+        if (isValidHexSecret(normalized)) {
+            return Keys.hmacShaKeyFor(hexStringToByteArray(normalized));
+        }
+
+        // Keep service bootable in misconfigured environments (e.g., missing Render env var).
+        System.err.println("JWT_SECRET missing or invalid; using generated runtime secret. Tokens issued before restart will become invalid.");
+        byte[] fallback = new byte[32];
+        new SecureRandom().nextBytes(fallback);
+        return Keys.hmacShaKeyFor(fallback);
+    }
+
+    private boolean isValidHexSecret(String value) {
+        if (value.isEmpty() || value.length() < 64 || value.length() % 2 != 0) {
+            return false;
+        }
+
+        for (int i = 0; i < value.length(); i++) {
+            if (Character.digit(value.charAt(i), 16) < 0) {
+                return false;
+            }
+        }
+        return true;
     }
     
     // Helper to decode hex string to byte array

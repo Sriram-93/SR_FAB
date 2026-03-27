@@ -9,6 +9,7 @@
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/Model3DRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/CartService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/WishlistRepository.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/RootController.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/CartRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/Admin.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/OrderService.java

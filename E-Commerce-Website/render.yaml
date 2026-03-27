@@ -1,3 +1,33 @@
+# Render Blueprint Specification for SR FAB
+# Use this in Render by selecting "Blueprint" and connecting your repository.
+# Blueprint Path: E-Commerce-Website/render.yaml
+
+envVarGroups:
+  - name: sr-fab-secrets
+    envVars:
+      - key: DB_URL
+        sync: false # User will provide in Render UI
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true # Render can generate a secure one if not provided
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: TRIPO_API_KEY
+        sync: false
+      - key: REPLICATE_API_TOKEN
+        sync: false
+
 services:
   # SR FAB Backend (Spring Boot Docker)
   - type: web
@@ -9,7 +39,7 @@ services:
     envVars:
       - key: PORT
         value: 8080
-      - fromGroup: sr-fab-secrets # Assuming a secret group is created for DB, Cloudinary, etc.
+      - fromGroup: sr-fab-secrets
     healthCheckPath: /api/health
 
   # SR FAB Frontend (Vite Static Site)

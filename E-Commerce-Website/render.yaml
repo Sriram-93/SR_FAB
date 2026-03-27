@@ -1,0 +1,30 @@
+services:
+  # SR FAB Backend (Spring Boot Docker)
+  - type: web
+    name: sr-fab-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8080
+      - fromGroup: sr-fab-secrets # Assuming a secret group is created for DB, Cloudinary, etc.
+    healthCheckPath: /api/health
+
+  # SR FAB Frontend (Vite Static Site)
+  - type: static
+    name: sr-fab-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    plan: free
+    routes:
+      # Proxy API requests to backend
+      - type: rewrite
+        source: /api/*
+        destination: https://sr-fab-backend.onrender.com/api/*
+      # Single Page Application routing
+      - type: rewrite
+        source: /*
+        destination: /index.html

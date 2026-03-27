@@ -72,3 +72,4 @@ com/srfab/services/ExternalModelGenerationService$SubmitResult.class
 com/srfab/entities/Coupon.class
 com/srfab/controllers/CartController.class
 com/srfab/security/JwtUtil.class
+com/srfab/controllers/HealthController.class

@@ -20,6 +20,7 @@
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/CouponRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/OrderRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/SubscriberController.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/HealthController.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/exceptions/GlobalExceptionHandler.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/Model3DService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/CouponController.java

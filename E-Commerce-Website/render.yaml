@@ -4,7 +4,7 @@ services:
     name: sr-fab-backend
     runtime: docker
     rootDir: E-Commerce-Website/backend
-    dockerfilePath: Dockerfile
+    dockerfilePath: E-Commerce-Website/backend/Dockerfile
     plan: free
     envVars:
       - key: PORT
@@ -19,7 +19,6 @@ services:
     rootDir: E-Commerce-Website/frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
-    plan: free
     routes:
       # Proxy API requests to backend
       - type: rewrite

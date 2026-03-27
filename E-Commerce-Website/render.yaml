@@ -13,11 +13,12 @@ services:
     healthCheckPath: /api/health
 
   # SR FAB Frontend (Vite Static Site)
-  - type: static_site
+  - type: web
     name: sr-fab-frontend
+    runtime: static
     rootDir: E-Commerce-Website/frontend
     buildCommand: npm install && npm run build
-    publishPath: dist
+    staticPublishPath: dist
     plan: free
     routes:
       # Proxy API requests to backend

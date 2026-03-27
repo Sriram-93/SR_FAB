@@ -15,8 +15,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -29,7 +29,13 @@ public class ProductService {
     private final ProductVariantRepository variantRepository;
 
     public List<Product> getAllProducts() {
-        return productRepository.findAll();
+        // Limit to first 100 products to avoid loading entire database
+        Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "productId"));
+        return productRepository.findAllBy(pageable).getContent();
+    }
+
+    public List<Product> getAllProductsForAdmin() {
+        return productRepository.findAllForAdmin();
     }
 
     public Page<ProductListItemDto> getProductsPage(Integer categoryId, String search, String sortBy, int page, int size) {
@@ -38,13 +44,20 @@ public class ProductService {
         Sort sort = Objects.requireNonNull(resolveSort(sortBy), "sort must not be null");
         Pageable pageable = PageRequest.of(safePage, safeSize, sort);
 
+        String normalizedSearch = search == null ? null : search.trim();
+        if (normalizedSearch != null && normalizedSearch.isEmpty()) {
+            normalizedSearch = null;
+        }
+
         Page<Product> productPage;
-        if (search != null && !search.isBlank()) {
-            productPage = productRepository.findByProductNameContainingIgnoreCase(search.trim(), pageable);
-        } else if (categoryId != null) {
-            productPage = productRepository.findByCategory_CategoryId(categoryId, pageable);
-        } else {
+        if (categoryId == null && normalizedSearch == null) {
             productPage = productRepository.findAllBy(pageable);
+        } else if (categoryId != null && normalizedSearch == null) {
+            productPage = productRepository.findByCategory_CategoryId(categoryId, pageable);
+        } else if (categoryId == null) {
+            productPage = productRepository.findBySearch(normalizedSearch, pageable);
+        } else {
+            productPage = productRepository.findByCategoryAndSearch(categoryId, normalizedSearch, pageable);
         }
 
         return productPage.map(this::toListItemDto);
@@ -80,7 +93,7 @@ public class ProductService {
     }
 
     public Product getProductById(int id) {
-        return productRepository.findById(id)
+        return productRepository.findByProductId(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
@@ -163,21 +176,39 @@ public class ProductService {
         variantRepository.save(variant);
     }
 
+
+    public int migrateUnsplashImagesToCloudinary(CloudinaryService cloudinaryService) {
+        List<Product> products = productRepository.findAll();
+        int count = 0;
+        for (Product product : products) {
+            String image = product.getProductImages();
+            if (image != null && image.contains("unsplash.com")) {
+                try {
+                    // Upload to Cloudinary under 'products' folder
+                    String newUrl = cloudinaryService.uploadGeneratedImage(image, "products");
+                    product.setProductImages(newUrl);
+                    productRepository.save(product);
+                    count++;
+                } catch (Exception e) {
+                    // Skip failed ones but continue with others
+                    System.err.println("Failed to migrate product " + product.getProductId() + ": " + e.getMessage());
+                }
+            }
+        }
+        return count;
+    }
+
     private ProductListItemDto toListItemDto(Product product) {
         CatalogCategoryDto categoryDto = null;
         if (product.getCategory() != null) {
             categoryDto = new CatalogCategoryDto(
                     product.getCategory().getCategoryId(),
-                    product.getCategory().getCategoryName()
+                    product.getCategory().getCategoryName(),
+                    product.getCategory().getCategoryImage()
             );
         }
 
-        List<String> colors = product.getVariants().stream()
-                .map(ProductVariant::getColor)
-                .filter(color -> color != null && !color.isBlank())
-                .map(color -> color.toLowerCase(Locale.ROOT))
-                .distinct()
-                .collect(Collectors.toList());
+        List<String> colors = Collections.emptyList();
 
         return new ProductListItemDto(
                 product.getProductId(),

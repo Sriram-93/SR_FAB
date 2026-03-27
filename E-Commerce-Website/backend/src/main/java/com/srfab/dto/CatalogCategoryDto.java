@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class CatalogCategoryDto {
     private int categoryId;
     private String categoryName;
+    private String categoryImage;
 }

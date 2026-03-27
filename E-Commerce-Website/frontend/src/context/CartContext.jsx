@@ -44,6 +44,12 @@ export const CartProvider = ({ children }) => {
         toast.warning("Please sign in to add items to your bag");
         return;
       }
+
+      if (!user.userId) {
+        toast.info("Cart is available only for customer accounts");
+        return;
+      }
+
       try {
         await api.post("/cart/add", {
           userId: user.userId,

@@ -12,9 +12,11 @@
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/CartRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/entities/Admin.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/OrderService.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/WishlistService.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/UserController.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/ModelGenerationJobRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/services/AuthService.java
+/home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/WishlistController.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/CouponRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/repositories/OrderRepository.java
 /home/sriram/SR FAB/E-Commerce-Website/backend/src/main/java/com/srfab/controllers/SubscriberController.java

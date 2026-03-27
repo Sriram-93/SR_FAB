@@ -27,7 +27,7 @@ public class OrderedProduct {
     @Column(name = "price", length = 45)
     private String price;
 
-    @Column(name = "image", length = 100)
+    @Column(name = "image", length = 512)
     private String image;
 
     // ── Variant snapshot at order time ──

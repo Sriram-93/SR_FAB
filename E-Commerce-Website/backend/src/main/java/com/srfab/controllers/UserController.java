@@ -4,6 +4,7 @@ import com.srfab.entities.User;
 import com.srfab.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -12,12 +13,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserRepository userRepository;
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getProfile(@PathVariable int id) {
         try {
             User user = userRepository.findById(id)
@@ -29,6 +30,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateProfile(@PathVariable int id, @RequestBody Map<String, String> updates) {
         try {
             User user = userRepository.findById(id)

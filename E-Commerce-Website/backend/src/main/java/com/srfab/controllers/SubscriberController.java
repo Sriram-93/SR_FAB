@@ -11,7 +11,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/subscribe")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class SubscriberController {
 
     private final SubscriberRepository subscriberRepository;

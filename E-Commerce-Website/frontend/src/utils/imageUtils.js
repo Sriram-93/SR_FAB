@@ -4,38 +4,49 @@
  */
 
 /**
- * Transforms a Cloudinary or Unsplash URL to an optimized version with specific dimensions.
+ * Transforms any image URL (Cloudinary, Unsplash, or others) to an optimized version
+ * using Cloudinary's dynamic CDN features (Proxy/Fetch for external sources).
  */
 export const toOptimizedImageUrl = (
   url,
-  { width, height, quality = 72 } = {},
+  { width, height, quality = "auto" } = {},
 ) => {
-  if (!url) return "";
+  if (!url || typeof url !== "string") return "";
 
+  // 0. Handle double-encoding or malformed starts (e.g. https%3A%2F%2F)
+  let cleanUrl = url;
+  if (url.startsWith("https%3A%2F%2F") || url.startsWith("http%3A%2F%2F")) {
+    try {
+      cleanUrl = decodeURIComponent(url);
+    } catch {
+      // ignore
+    }
+  }
+
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const hasWidth = Number.isFinite(width) && width > 0;
   const hasHeight = Number.isFinite(height) && height > 0;
 
-  // Cloudinary optimization
-  if (url.includes("cloudinary.com")) {
-    const parts = url.split("/upload/");
+  // 1. Existing Cloudinary URL: Inject transformations directly
+  if (cleanUrl.includes("cloudinary.com")) {
+    const parts = cleanUrl.split("/upload/");
     if (parts.length === 2) {
-      const transforms = ["f_auto", "dpr_auto", "q_auto:good"];
+      const transforms = ["f_auto", `q_${quality}`];
       if (hasWidth && hasHeight) {
         transforms.push(`w_${width}`, `h_${height}`, "c_fill", "g_auto");
       } else if (hasWidth) {
         transforms.push(`w_${width}`, "c_limit");
       }
-      const transform = transforms.join(",");
-      return `${parts[0]}/upload/${transform}/${parts[1]}`;
+      return `${parts[0]}/upload/${transforms.join(",")}/${parts[1]}`;
     }
   }
 
-  // Unsplash optimization
-  if (url.includes("images.unsplash.com")) {
-    const baseUrl = url.split("?")[0];
+  // 2. Unsplash optimization fallback
+  if (cleanUrl.includes("images.unsplash.com")) {
+    const baseUrl = cleanUrl.split("?")[0];
     const params = new URLSearchParams({
       auto: "format,compress",
-      q: String(quality),
+      q: typeof quality === "number" ? String(quality) : "80",
       cs: "tinysrgb",
     });
     if (hasWidth) params.set("w", String(width));
@@ -44,11 +55,22 @@ export const toOptimizedImageUrl = (
     return `${baseUrl}?${params.toString()}`;
   }
 
+  // 3. Fallback: Use Cloudinary Fetch for other external URLs
+  if (cleanUrl.startsWith("http") && cloudName) {
+    const transforms = ["f_auto", `q_${quality}`];
+    if (hasWidth && hasHeight) {
+      transforms.push(`w_${width}`, `h_${height}`, "c_fill", "g_auto");
+    } else if (hasWidth) {
+      transforms.push(`w_${width}`, "c_limit");
+    }
+    return `https://res.cloudinary.com/${cloudName}/image/fetch/${transforms.join(",")}/${encodeURIComponent(url)}`;
+  }
+
   return url;
 };
 
 /**
- * Builds a responsive srcSet for an image based on aspect ratio.
+ * Builds a robust responsive srcSet for an image.
  */
 export const buildImageSrcSet = (url, aspect = "3:4") => {
   if (!url || typeof url !== "string") return "";
@@ -57,11 +79,12 @@ export const buildImageSrcSet = (url, aspect = "3:4") => {
   const ratio =
     aspectParts.length === 2 ? aspectParts[1] / aspectParts[0] : 1.33;
 
-  const widths = [240, 360, 480, 720, 960, 1200];
+  // Expanded widths for high-DPI and large screens
+  const widths = [360, 480, 640, 800, 1080, 1280];
   return widths
     .map((w) => {
       const h = Math.round(w * ratio);
-      return `${toOptimizedImageUrl(url, { width: w, height: h, quality: 70 })} ${w}w`;
+      return `${toOptimizedImageUrl(url, { width: w, height: h })} ${w}w`;
     })
     .join(", ");
 };

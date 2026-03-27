@@ -11,7 +11,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/models")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class Model3DController {
 
     private final Model3DService model3DService;

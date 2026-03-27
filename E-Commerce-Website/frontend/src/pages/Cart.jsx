@@ -14,8 +14,7 @@ import {
 } from "react-icons/fi";
 import { toOptimizedImageUrl } from "../utils/imageUtils";
 
-const CART_FALLBACK =
-  "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=150&q=60";
+const CART_FALLBACK = "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547829/sr-fab/site-assets/gen-39017cfd-219f-483f-ab00-a97b9fba13ce.jpg";
 
 const Cart = () => {
   const { user } = useAuth();

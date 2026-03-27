@@ -15,23 +15,23 @@ import { usePageSeo } from "../hooks/usePageSeo";
 import { buildImageSrcSet, toOptimizedImageUrl } from "../utils/imageUtils";
 
 const HERO_IMG =
-  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&q=80";
+  "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547905/sr-fab/site-assets/gen-3bda373a-ed64-4e44-8a05-7e48c2419dc5.jpg";
 
 const CATEGORY_FALLBACKS = {
   "cotton t-shirts":
-    "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=900&q=80",
+    "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547840/sr-fab/site-assets/gen-959b3be7-8f35-47fc-a2f4-a2bb6a032233.jpg",
   "cotton shirts":
-    "https://images.unsplash.com/photo-1603252109303-2751441dd157?w=900&q=80",
+    "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547795/sr-fab/site-assets/gen-09dd10e1-0681-4d44-88d3-ba532cc4e8a3.jpg",
   "cotton pants":
-    "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=900&q=80",
+    "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547886/sr-fab/site-assets/gen-e46cf1b3-f83d-4bd6-b5a7-d5995a91941d.jpg",
   "cotton shorts":
-    "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=900&q=80",
+    "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547879/sr-fab/site-assets/gen-9ac150d0-15c5-41b5-b5e5-d4dcfc5998f8.jpg",
   "cotton lounge & nightwear":
-    "https://images.unsplash.com/photo-1617953644310-e690da9be982?w=900&q=80",
-  "cotton activewear":
-    "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=900&q=80",
-  "cotton outerwear":
-    "https://images.unsplash.com/photo-1548883354-7622d03aca27?w=900&q=80",
+    "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547865/sr-fab/site-assets/gen-a56cf590-b2d9-422c-a564-a478461b7c00.jpg",
+  activewear:
+    "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547852/sr-fab/site-assets/gen-dde7c997-5f57-4b8a-b14c-16f373cc4359.jpg",
+  outerwear:
+    "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547783/sr-fab/site-assets/gen-d545766a-b57d-4e46-930e-af3d25abf646.jpg",
 };
 
 const Home = () => {

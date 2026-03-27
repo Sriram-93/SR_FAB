@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/products", "/api/products/**").permitAll()
                 .requestMatchers("/api/categories/**").permitAll()
                 .requestMatchers("/api/cart/**").permitAll()
+                .requestMatchers("/api/wishlist/**").permitAll()
                 .requestMatchers("/api/coupons/**").permitAll()
                 .requestMatchers("/api/vto/**").permitAll()
                 .requestMatchers("/api/models/**").permitAll()
@@ -61,9 +62,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
+        // Whitelist localhost and vercel (add other production domains if known)
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "https://srfab.vercel.app"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(List.of("Authorization"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

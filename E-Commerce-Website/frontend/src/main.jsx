@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { WishlistProvider } from "./context/WishlistContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -26,8 +27,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <ThemeProvider>
           <AuthProvider>
             <CartProvider>
-              <App />
-              <ToastContainer position="bottom-right" />
+              <WishlistProvider>
+                <App />
+                <ToastContainer position="bottom-right" />
+              </WishlistProvider>
             </CartProvider>
           </AuthProvider>
         </ThemeProvider>

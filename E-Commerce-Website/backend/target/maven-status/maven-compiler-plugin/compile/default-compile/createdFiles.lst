@@ -36,6 +36,7 @@ com/srfab/services/VirtualTryOnService$VtoJob.class
 com/srfab/controllers/AuthController.class
 com/srfab/repositories/CategoryRepository.class
 com/srfab/controllers/SubscriberController.class
+com/srfab/controllers/WishlistController.class
 com/srfab/services/FileService.class
 com/srfab/services/EmailService.class
 com/srfab/repositories/ProductRepository.class
@@ -61,6 +62,7 @@ com/srfab/repositories/Model3DRepository.class
 com/srfab/repositories/ModelGenerationJobRepository.class
 com/srfab/entities/ProductVariant.class
 com/srfab/repositories/CouponRepository.class
+com/srfab/services/WishlistService.class
 com/srfab/services/CategoryService.class
 com/srfab/services/OrderService.class
 com/srfab/services/VirtualTryOnService$NamedByteArrayResource.class

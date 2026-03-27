@@ -1,15 +1,16 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { FiChevronLeft, FiHeart, FiShoppingBag } from "react-icons/fi";
-import { toast } from "react-toastify";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useWishlist } from "../context/WishlistContext";
 import ProductCard from "../components/ProductCard";
 import ProductDetailsSkeleton from "../components/skeletons/ProductDetailsSkeleton";
 import QueryErrorState from "../components/QueryErrorState";
 import {
   useProductByIdQuery,
   useRelatedProductsQuery,
+  useProductsQuery,
 } from "../api/catalogQueries";
 import {
   groupProductsByStyle,
@@ -34,6 +35,7 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { toggleWishlist, isInWishlist, isWishlistPending } = useWishlist();
 
   const [selectionByProduct, setSelectionByProduct] = useState({});
   const [showTryOn, setShowTryOn] = useState(false);
@@ -41,10 +43,14 @@ const ProductDetails = () => {
 
   const {
     data: product,
-    isLoading,
+    isLoading: isProductLoading,
     isError,
     refetch,
   } = useProductByIdQuery(id);
+  const isAdmin = user?.role === "ROLE_ADMIN";
+  const wishlistPending = product
+    ? isWishlistPending(product.productId)
+    : false;
 
   const { data: relatedProductsRaw = [] } = useRelatedProductsQuery({
     productId: product?.productId,
@@ -70,13 +76,18 @@ const ProductDetails = () => {
     url: `${window.location.origin}/product/${id}`,
   });
 
+  const isLoading = isProductLoading;
+  
+  const { data: allProducts = [] } = useProductsQuery();
+  
   const styleFamily = useMemo(() => {
-    if (!product || allProducts.length === 0) return [product].filter(Boolean);
-
+    if (!product) return [];
+    
+    const candidates = allProducts.length > 0 ? allProducts : [product];
     const baseName = toBaseProductName(product.productName || "").toLowerCase();
     const categoryId = product?.category?.categoryId;
 
-    const family = allProducts.filter((item) => {
+    const family = candidates.filter((item) => {
       const sameBaseName =
         toBaseProductName(item.productName || "").toLowerCase() === baseName;
       const sameCategory = item?.category?.categoryId === categoryId;
@@ -361,31 +372,43 @@ const ProductDetails = () => {
                 : `${product.totalStock} in stock`}
           </p>
 
-          <div className="mt-8 flex gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                selectedVariant &&
-                addToCart(product.productId, selectedVariant.variantId)
-              }
-              disabled={!selectedVariant || selectedVariant.stock <= 0}
-              className="flex flex-1 items-center justify-center gap-2 bg-primary py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-bg transition-all duration-300 hover:-translate-y-1 hover:bg-accent hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:bg-primary/20 disabled:text-primary/40"
-            >
-              <FiShoppingBag size={16} />
-              {!selectedVariant
-                ? "Select Options"
-                : selectedVariant.stock <= 0
-                  ? "Out of Stock"
-                  : "Add to Bag"}
-            </button>
-            <button
-              type="button"
-              className="flex h-[60px] w-[60px] items-center justify-center border border-primary/10 text-primary transition-all duration-300 hover:border-accent hover:bg-accent/5 hover:text-accent"
-              aria-label="Save to wishlist"
-            >
-              <FiHeart size={20} />
-            </button>
-          </div>
+          {!isAdmin ? (
+            <div className="mt-8 flex gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  selectedVariant &&
+                  addToCart(product.productId, selectedVariant.variantId)
+                }
+                disabled={!selectedVariant || selectedVariant.stock <= 0}
+                className="flex flex-1 items-center justify-center gap-2 bg-primary py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-bg transition-all duration-300 hover:-translate-y-1 hover:bg-accent hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:bg-primary/20 disabled:text-primary/40"
+              >
+                <FiShoppingBag size={16} />
+                {!selectedVariant
+                  ? "Select Options"
+                  : selectedVariant.stock <= 0
+                    ? "Out of Stock"
+                    : "Add to Bag"}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleWishlist(product.productId)}
+                disabled={wishlistPending}
+                className="flex h-[60px] w-[60px] items-center justify-center border border-primary/10 text-primary transition-all duration-300 hover:border-accent hover:bg-accent/5 hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Save to wishlist"
+              >
+                <FiHeart
+                  size={20}
+                  fill={isInWishlist(product.productId) ? "currentColor" : "none"}
+                  className={isInWishlist(product.productId) ? "text-accent" : ""}
+                />
+              </button>
+            </div>
+          ) : (
+            <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-primary/50">
+              Customer actions are hidden for admin accounts.
+            </p>
+          )}
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <button

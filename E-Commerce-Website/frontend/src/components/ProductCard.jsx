@@ -1,9 +1,9 @@
-import { lazy, memo, Suspense, useState } from "react";
+import { memo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiHeart } from "react-icons/fi";
-import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
+import { useWishlist } from "../context/WishlistContext";
 import { productByIdQueryOptions } from "../api/catalogQueries";
 import { buildImageSrcSet, toOptimizedImageUrl } from "../utils/imageUtils";
 import { FALLBACK_IMAGE } from "../utils/productImages";
@@ -15,8 +15,10 @@ const ProductCard = ({ product, index = 0 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [inWishlist, setInWishlist] = useState(false);
+  const { toggleWishlist, isInWishlist, isWishlistPending } = useWishlist();
   const [imageFailed, setImageFailed] = useState(false);
+  const isAdmin = user?.role === "ROLE_ADMIN";
+  const wishlistPending = isWishlistPending(product.productId);
 
   const colorMap = {
     black: "#1A1A1A",
@@ -51,12 +53,7 @@ const ProductCard = ({ product, index = 0 }) => {
 
   const handleWishlist = (e) => {
     e.stopPropagation();
-    if (!user) {
-      toast.info("Please sign in to save items");
-      return;
-    }
-    setInWishlist(!inWishlist);
-    toast.success(inWishlist ? "Removed from Wishlist" : "Added to Wishlist");
+    toggleWishlist(product.productId);
   };
 
   // Derive available sizes from variants
@@ -103,7 +100,6 @@ const ProductCard = ({ product, index = 0 }) => {
             alt={product.productName}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             loading="lazy"
-            fetchPriority="low"
             decoding="async"
             onError={(e) => {
               setImageFailed(true);
@@ -130,14 +126,17 @@ const ProductCard = ({ product, index = 0 }) => {
             >
               Details
             </button>
-            <button
-              type="button"
-              onClick={handleWishlist}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 text-primary transition hover:border-accent hover:text-accent hover:bg-accent/5"
-              aria-label="Wishlist"
-            >
-              <FiHeart size={16} fill={inWishlist ? "currentColor" : "none"} />
-            </button>
+            {!isAdmin && (
+              <button
+                type="button"
+                onClick={handleWishlist}
+                disabled={wishlistPending}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 text-primary transition hover:border-accent hover:text-accent hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Wishlist"
+              >
+                <FiHeart size={16} fill={isInWishlist(product.productId) ? "currentColor" : "none"} />
+              </button>
+            )}
           </div>
         </div>
 

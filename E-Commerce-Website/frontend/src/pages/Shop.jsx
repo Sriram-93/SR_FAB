@@ -56,57 +56,9 @@ const Shop = () => {
     description:
       "Explore premium cotton collections with fast browsing, smart filtering, and rich product previews.",
     image:
-      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=630&fit=crop&q=80",
+      "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547905/sr-fab/site-assets/gen-3bda373a-ed64-4e44-8a05-7e48c2419dc5.jpg",
     url: `${window.location.origin}/shop`,
   });
-
-  const styleProducts = useMemo(
-    () => groupProductsByStyle(products),
-    [products],
-  );
-
-  const filtered = useMemo(() => {
-    return styleProducts.filter((product) => {
-      const matchesCat =
-        selectedCat === "all" ||
-        product.category?.categoryId === Number.parseInt(selectedCat, 10);
-
-      const matchesSearch =
-        !searchQuery ||
-        product.productName?.toLowerCase().includes(searchQuery) ||
-        product.brand?.toLowerCase().includes(searchQuery) ||
-        product.productDescription?.toLowerCase().includes(searchQuery) ||
-        product.styleColors?.some((color) =>
-          color.toLowerCase().includes(searchQuery),
-        );
-
-      return matchesCat && matchesSearch;
-    });
-  }, [styleProducts, selectedCat, searchQuery]);
-
-  const sortedProducts = useMemo(() => {
-    const cloned = [...filtered];
-
-    if (sortBy === "price-asc") {
-      cloned.sort(
-        (a, b) =>
-          (a.productPriceAfterDiscount || a.productPrice || 0) -
-          (b.productPriceAfterDiscount || b.productPrice || 0),
-      );
-    } else if (sortBy === "price-desc") {
-      cloned.sort(
-        (a, b) =>
-          (b.productPriceAfterDiscount || b.productPrice || 0) -
-          (a.productPriceAfterDiscount || a.productPrice || 0),
-      );
-    } else if (sortBy === "discount") {
-      cloned.sort(
-        (a, b) => (b.productDiscount || 0) - (a.productDiscount || 0),
-      );
-    }
-
-    return cloned;
-  }, [filtered, sortBy]);
 
   const isLoading = isProductsLoading || isCategoriesLoading;
   const hasError = productsError || categoriesError;
@@ -163,7 +115,7 @@ const Shop = () => {
               {searchQuery ? `Search: "${searchQuery}"` : "All Collections"}
             </h1>
             <p className="mt-1 text-sm font-medium text-muted">
-              {pageData?.totalElements ?? sortedProducts.length} products
+              {pageData?.totalElements || 0} products
             </p>
           </div>
 
@@ -245,7 +197,7 @@ const Shop = () => {
 
       {isLoading ? (
         <ProductGridSkeleton count={8} />
-      ) : sortedProducts.length === 0 ? (
+      ) : products.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center text-center">
           <p className="text-lg font-medium text-primary">No products found</p>
           <p className="mt-2 text-sm text-muted">
@@ -255,7 +207,7 @@ const Shop = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-8">
-            {sortedProducts.map((product, index) => (
+            {products.map((product, index) => (
               <div key={product.productId} className="h-full">
                 <ProductCard product={product} index={index} />
               </div>

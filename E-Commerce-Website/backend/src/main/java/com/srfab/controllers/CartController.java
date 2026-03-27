@@ -4,6 +4,7 @@ import com.srfab.entities.Cart;
 import com.srfab.services.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -13,12 +14,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class CartController {
 
     private final CartService cartService;
 
     @GetMapping("/{userId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getCart(@PathVariable int userId) {
         try {
             List<Cart> items = cartService.getCartItems(userId);
@@ -29,12 +30,18 @@ public class CartController {
     }
 
     @PostMapping("/add")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> addToCart(@RequestBody Map<String, Integer> request) {
         try {
-            int userId = request.get("userId");
-            int productId = request.get("productId");
-            int variantId = request.get("variantId");
-            int quantity = request.getOrDefault("quantity", 1);
+            Integer userId = request.get("userId");
+            Integer productId = request.get("productId");
+            Integer variantId = request.get("variantId");
+            Integer quantity = request.getOrDefault("quantity", 1);
+
+            if (userId == null || productId == null || variantId == null) {
+                return ResponseEntity.badRequest().body(errorMap("Missing required fields: userId, productId, or variantId"));
+            }
+
             Cart cart = cartService.addToCart(userId, productId, variantId, quantity);
             return ResponseEntity.ok(cart);
         } catch (Exception e) {
@@ -43,6 +50,7 @@ public class CartController {
     }
 
     @PutMapping("/{cartId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateQuantity(@PathVariable int cartId, @RequestBody Map<String, Integer> request) {
         try {
             int quantity = request.get("quantity");
@@ -57,6 +65,7 @@ public class CartController {
     }
 
     @DeleteMapping("/{cartId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> removeFromCart(@PathVariable int cartId) {
         try {
             cartService.removeFromCart(cartId);

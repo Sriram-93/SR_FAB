@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../api/axios";
 import { toast } from "react-toastify";
 import {
@@ -15,7 +15,6 @@ import {
   FiEye,
   FiX,
 } from "react-icons/fi";
-import { getProductImage } from "../utils/productImages";
 
 const AdminDashboard = () => {
   const [categories, setCategories] = useState([]);
@@ -23,6 +22,8 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [coupons, setCoupons] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [analyticsState, setAnalyticsState] = useState("loading");
+  const [adminError, setAdminError] = useState("");
   const [activeTab, setActiveTab] = useState("analytics");
 
   // ── Form States ──
@@ -64,28 +65,83 @@ const AdminDashboard = () => {
   const [productForm, setProductForm] = useState(emptyProduct);
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [couponForm, setCouponForm] = useState(emptyCoupon);
+  const hasFetchedInitially = useRef(false);
 
   const fetchData = useCallback(async () => {
-    try {
-      const [catRes, prodRes, orderRes, couponRes, analyticsRes] =
-        await Promise.all([
-          api.get("/categories"),
-          api.get("/products"),
-          api.get("/orders").catch(() => ({ data: [] })),
-          api.get("/admin/coupons").catch(() => ({ data: [] })),
-          api.get("/admin/analytics").catch(() => ({ data: null })),
-        ]);
-      setCategories(catRes.data);
-      setProducts(prodRes.data);
-      setOrders(orderRes.data);
-      setCoupons(couponRes.data);
-      setAnalytics(analyticsRes.data);
-    } catch (err) {
-      console.error(err);
+    setAnalyticsState("loading");
+    setAdminError("");
+
+    const [catRes, prodRes, orderRes, couponRes, analyticsRes] =
+      await Promise.allSettled([
+        api.get("/categories"),
+        api.get("/products/paged?page=0&size=40", { timeout: 12000 }),
+        api.get("/orders"),
+        api.get("/admin/coupons"),
+        api.get("/admin/analytics", { timeout: 20000 }),
+      ]);
+
+    setCategories(catRes.status === "fulfilled" ? catRes.value.data : []);
+
+    if (prodRes.status === "fulfilled") {
+      setProducts(prodRes.value.data?.content || []);
+    } else {
+      try {
+        // Keep admin usable with a smaller fallback query if the primary request fails.
+        const fallbackProducts = await api.get(
+          "/products/paged?page=0&size=20",
+          {
+            timeout: 10000,
+          },
+        );
+        setProducts(fallbackProducts.data?.content || []);
+      } catch {
+        setProducts([]);
+      }
+      setAdminError("Products are slow to load. Showing partial data.");
+    }
+
+    if (orderRes.status === "fulfilled") {
+      setOrders(orderRes.value.data || []);
+    } else {
+      setOrders([]);
+      setAdminError(
+        (prev) => prev || "Orders API failed. Check admin authorization.",
+      );
+    }
+
+    if (couponRes.status === "fulfilled") {
+      setCoupons(couponRes.value.data || []);
+    } else {
+      setCoupons([]);
+      setAdminError(
+        (prev) => prev || "Coupons API failed. Check admin authorization.",
+      );
+    }
+
+    if (analyticsRes.status === "fulfilled") {
+      setAnalytics(analyticsRes.value.data);
+      setAnalyticsState("ready");
+    } else {
+      setAnalytics(null);
+      if (
+        analyticsRes.reason?.response?.status === 401 ||
+        analyticsRes.reason?.response?.status === 403
+      ) {
+        setAnalyticsState("forbidden");
+      } else {
+        setAnalyticsState("error");
+      }
+      setAdminError(
+        (prev) => prev || "Analytics API failed. Check admin authorization.",
+      );
     }
   }, []);
 
   useEffect(() => {
+    if (hasFetchedInitially.current) {
+      return;
+    }
+    hasFetchedInitially.current = true;
     fetchData();
   }, [fetchData]);
 
@@ -121,7 +177,10 @@ const AdminDashboard = () => {
       setProductForm(emptyProduct);
       fetchData();
     } catch (err) {
-      toast.error(err?.response?.data?.error || "Failed");
+      const errorMsg =
+        err?.response?.data?.error || err?.message || "Failed to save product";
+      console.error("Product save error:", err);
+      toast.error(errorMsg);
     }
   };
 
@@ -136,22 +195,30 @@ const AdminDashboard = () => {
     }
   };
 
-  const editProduct = (p) => {
-    setProductForm({
-      productName: p.productName,
-      productDescription: p.productDescription || "",
-      productPrice: p.productPrice,
-      productDiscount: p.productDiscount || 0,
-      brand: p.brand || "",
-      fabricType: p.fabricType || "",
-      productImages: p.productImages || "",
-      categoryId: p.category?.categoryId || "",
-      variants: p.variants?.length
-        ? p.variants
-        : [{ size: "", color: "", sku: "", stock: "" }],
-    });
-    setEditItem(p);
-    setShowProductForm(true);
+  const editProduct = async (p) => {
+    try {
+      const { data: fullProduct } = await api.get(`/products/${p.productId}`, {
+        timeout: 7000,
+      });
+
+      setProductForm({
+        productName: fullProduct.productName,
+        productDescription: fullProduct.productDescription || "",
+        productPrice: fullProduct.productPrice,
+        productDiscount: fullProduct.productDiscount || 0,
+        brand: fullProduct.brand || "",
+        fabricType: fullProduct.fabricType || "",
+        productImages: fullProduct.productImages || "",
+        categoryId: fullProduct.category?.categoryId || "",
+        variants: fullProduct.variants?.length
+          ? fullProduct.variants
+          : [{ size: "", color: "", sku: "", stock: "" }],
+      });
+      setEditItem(fullProduct);
+      setShowProductForm(true);
+    } catch {
+      toast.error("Could not load full product details for editing");
+    }
   };
 
   // ── Category CRUD ──
@@ -289,6 +356,12 @@ const AdminDashboard = () => {
         Admin Dashboard
       </h1>
 
+      {adminError && (
+        <div className="mb-6 border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {adminError}
+        </div>
+      )}
+
       <div className="flex flex-col gap-8 lg:flex-row">
         {/* ── Sidebar ── */}
         <aside className="w-full lg:w-64 shrink-0 transition-opacity duration-700">
@@ -317,7 +390,18 @@ const AdminDashboard = () => {
               <h2 className="mb-6 text-lg font-bold text-primary">
                 Store Analytics
               </h2>
-              {analytics ? (
+              {analyticsState === "loading" ? (
+                <p className="text-sm text-muted">Loading analytics...</p>
+              ) : analyticsState === "forbidden" ? (
+                <p className="text-sm text-red-500">
+                  Analytics requires admin authorization. Please login again
+                  with an admin account.
+                </p>
+              ) : analyticsState === "error" ? (
+                <p className="text-sm text-red-500">
+                  Could not load analytics right now. Please retry.
+                </p>
+              ) : analytics ? (
                 <>
                   <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     {[
@@ -394,7 +478,9 @@ const AdminDashboard = () => {
                   )}
                 </>
               ) : (
-                <p className="text-sm text-muted">Loading analytics...</p>
+                <p className="text-sm text-muted">
+                  No analytics data available.
+                </p>
               )}
             </div>
           )}
@@ -616,68 +702,80 @@ const AdminDashboard = () => {
                 </form>
               )}
 
-              {/* Product List */}
-              <div className="space-y-3">
-                {products.map((p) => (
+              {/* Product Cards - First 10 */}
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+                {products.slice(0, 10).map((p) => (
                   <div
                     key={p.productId}
-                    className="flex items-center justify-between border border-primary/10 p-4 transition hover:border-accent/50"
+                    className="group border border-primary/10 hover:border-accent/50 transition overflow-hidden rounded-2xl bg-surface/50"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 overflow-hidden rounded-xl bg-primary/5 border border-primary/10">
-                        {p.productImages ? (
-                          <img
-                            src={p.productImages}
-                            alt={p.productName}
-                            className="h-full w-full object-cover"
-                            onError={(e) => {
-                              e.target.src =
-                                "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=100&q=80";
-                            }}
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-primary/25">
-                            <FiBox />
-                          </div>
-                        )}
-                      </div>
+                    {/* Image */}
+                    <div className="h-32 w-full overflow-hidden bg-primary/5 border-b border-primary/10">
+                      {p.productImages ? (
+                        <img
+                          src={p.productImages}
+                          alt={p.productName}
+                          className="h-full w-full object-cover group-hover:scale-110 transition duration-300"
+                          onError={(e) => {
+                            e.target.src =
+                              "https://images.unsplash.com/photo-1523381210434-271e8be1f52b";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-primary/25">
+                          <FiBox size={40} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3 space-y-2">
+                      <p className="font-semibold text-primary text-sm line-clamp-2 min-h-9">
+                        {p.productName}
+                      </p>
                       <div>
-                        <p className="font-medium text-primary">
-                          {p.productName}
-                        </p>
-                        <p className="text-sm text-accent">
+                        <p className="text-xs text-accent font-bold">
                           ₹{p.productPrice}
                           {p.productDiscount > 0 && (
-                            <span className="ml-2 text-xs text-green-600">
+                            <span className="ml-1 text-green-600">
                               (-{p.productDiscount}%)
                             </span>
                           )}
                         </p>
-                        {/* Low stock badge */}
                         {p.variants?.some((v) => v.stock <= 5) && (
                           <span className="inline-flex items-center gap-1 text-[10px] text-red-600 font-semibold mt-1">
-                            <FiAlertTriangle size={10} /> Low Stock
+                            <FiAlertTriangle size={9} /> Low Stock
                           </span>
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => editProduct(p)}
-                        className="text-primary/45 transition hover:text-accent"
-                      >
-                        <FiEdit3 size={16} />
-                      </button>
-                      <button
-                        onClick={() => deleteProduct(p.productId)}
-                        className="text-primary/45 transition hover:text-red-500"
-                      >
-                        <FiTrash2 size={16} />
-                      </button>
+
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-2 border-t border-primary/5">
+                        <button
+                          onClick={() => editProduct(p)}
+                          className="flex-1 flex items-center justify-center gap-1 text-primary/70 hover:text-accent text-xs font-semibold py-1.5 hover:bg-primary/5 rounded transition"
+                          title="Edit"
+                        >
+                          <FiEdit3 size={14} /> Edit
+                        </button>
+                        <button
+                          onClick={() => deleteProduct(p.productId)}
+                          className="flex-1 flex items-center justify-center gap-1 text-primary/70 hover:text-red-500 text-xs font-semibold py-1.5 hover:bg-red-50 rounded transition"
+                          title="Delete"
+                        >
+                          <FiTrash2 size={14} /> Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
+
+              {products.length > 10 && (
+                <p className="mt-6 text-center text-sm text-primary/50">
+                  Showing 10 of {products.length} products
+                </p>
+              )}
             </div>
           )}
 
@@ -1151,7 +1249,7 @@ const AdminDashboard = () => {
                         className="h-full w-full object-cover"
                         onError={(e) => {
                           e.target.src =
-                            "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=100&q=80";
+                            "https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547829/sr-fab/site-assets/gen-39017cfd-219f-483f-ab00-a97b9fba13ce.jpg";
                         }}
                       />
                     </div>

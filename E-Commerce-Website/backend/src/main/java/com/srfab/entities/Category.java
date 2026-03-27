@@ -24,7 +24,7 @@ public class Category {
     @Column(name = "name", length = 100)
     private String categoryName;
     
-    @Column(name = "image", length = 100)
+    @Column(name = "image", length = 512)
     private String categoryImage;
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

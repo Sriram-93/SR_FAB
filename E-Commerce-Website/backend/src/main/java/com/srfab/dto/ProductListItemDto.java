@@ -1,14 +1,12 @@
 package com.srfab.dto;
 
 import com.srfab.entities.Product;
-import com.srfab.entities.ProductVariant;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -30,16 +28,12 @@ public class ProductListItemDto {
         if (product.getCategory() != null) {
             categoryDto = new CatalogCategoryDto(
                     product.getCategory().getCategoryId(),
-                    product.getCategory().getCategoryName()
+                    product.getCategory().getCategoryName(),
+                    product.getCategory().getCategoryImage()
             );
         }
 
-        List<String> colors = product.getVariants().stream()
-                .map(ProductVariant::getColor)
-                .filter(color -> color != null && !color.isBlank())
-                .map(color -> color.toLowerCase(Locale.ROOT))
-                .distinct()
-                .collect(Collectors.toList());
+        List<String> colors = Collections.emptyList();
 
         return new ProductListItemDto(
                 product.getProductId(),

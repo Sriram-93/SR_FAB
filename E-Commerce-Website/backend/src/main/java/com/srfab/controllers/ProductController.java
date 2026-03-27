@@ -11,7 +11,6 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ProductController {
 
     private final ProductService productService;
@@ -28,7 +26,16 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<List<ProductListItemDto>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts().stream().map(ProductListItemDto::fromEntity).toList());
+        // Return paginated results instead of all products to avoid timeout
+        // Frontend should use /paged endpoint for better performance
+        var page = productService.getProductsPage(null, null, "featured", 0, 100);
+        return ResponseEntity.ok(page.stream().map(dto -> dto).toList());
+    }
+
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Product>> getAllProductsForAdmin() {
+        return ResponseEntity.ok(productService.getAllProductsForAdmin());
     }
 
     @GetMapping("/paged")
@@ -61,6 +68,17 @@ public class ProductController {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(60, TimeUnit.SECONDS).cachePublic())
                 .body(productService.getRelatedProducts(productId, categoryId, limit));
+    }
+
+    // ─── Migrate Product Catalog to Cloudinary ──────────
+    @GetMapping("/admin/migrate-catalog")
+    public ResponseEntity<Map<String, Object>> migrateCatalog() {
+        int migratedCount = productService.migrateUnsplashImagesToCloudinary(cloudinaryService);
+        return ResponseEntity.ok(Map.of(
+            "message", "Migration complete",
+            "count", migratedCount,
+            "status", "SUCCESS"
+        ));
     }
 
     @GetMapping("/{id}")
@@ -106,11 +124,4 @@ public class ProductController {
         return ResponseEntity.ok(Map.of("message", "Stock updated", "variantId", variantId, "newStock", stock));
     }
 
-    // ─── Cloudinary Image Upload ─────────────────────────
-    @PostMapping("/upload-image")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
-        String url = cloudinaryService.uploadImage(file, "products");
-        return ResponseEntity.ok(Map.of("url", url));
-    }
 }

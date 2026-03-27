@@ -12,7 +12,6 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/admin/analytics")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @PreAuthorize("hasRole('ADMIN')")
 public class AnalyticsController {
 

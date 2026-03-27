@@ -12,17 +12,12 @@ const FASHION_IMAGES = [
   'photo-1601924582970-9238bcb495d9', // stole / accessories
 ];
 
-const FALLBACK = 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&q=75';
+const FALLBACK = 'https://res.cloudinary.com/de5x4aaqj/image/upload/v1774547829/sr-fab/site-assets/gen-39017cfd-219f-483f-ab00-a97b9fba13ce.jpg';
 
-/**
- * Returns an Unsplash fashion image URL for a product.
- * @param {number} productId - The product's unique ID
- * @param {number} [width=400] - Desired image width
- * @param {number} [height=530] - Desired image height
- */
-export const getProductImage = (productId, width = 400, height = 530) => {
+export const getProductImage = (productId) => {
   const idx = ((productId || 1) - 1) % FASHION_IMAGES.length;
-  return `https://images.unsplash.com/${FASHION_IMAGES[idx]}?w=${width}&h=${height}&fit=crop&q=80`;
+  // Use base URL without query parameters; let imageUtils handles optimization
+  return `https://images.unsplash.com/${FASHION_IMAGES[idx]}`;
 };
 
 export const FALLBACK_IMAGE = FALLBACK;

@@ -196,19 +196,21 @@ const Navbar = ({ onCartOpen }) => {
             )}
 
             {/* Cart */}
-            <button
-              onClick={onCartOpen}
-              type="button"
-              className="relative text-primary transition hover:text-accent"
-              aria-label="Cart"
-            >
-              <FiShoppingBag size={20} />
-              {cartCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-black text-white shadow-lg">
-                  {cartCount}
-                </span>
-              )}
-            </button>
+            {user?.role !== "ROLE_ADMIN" && (
+              <button
+                onClick={onCartOpen}
+                type="button"
+                className="relative text-primary transition hover:text-accent"
+                aria-label="Cart"
+              >
+                <FiShoppingBag size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-black text-white shadow-lg">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* Mobile Toggle */}
             <button

@@ -9,6 +9,10 @@ import java.sql.Timestamp;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "user")
@@ -23,16 +27,24 @@ public class User {
     @Column(name = "userid")
     private int userId;
     
+    @NotBlank(message = "Name is required")
+    @Size(max = 100)
     @Column(name = "name", length = 100)
     private String userName;
     
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
+    @Size(max = 100)
     @Column(name = "email", length = 100, unique = true)
     private String userEmail;
     
+    @NotBlank(message = "Password is required")
+    @Size(min = 6, message = "Password must be at least 6 characters")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "password", length = 100)
     private String userPassword;
     
+    @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
     @Column(name = "phone", length = 20, unique = true)
     private String userPhone;
     
